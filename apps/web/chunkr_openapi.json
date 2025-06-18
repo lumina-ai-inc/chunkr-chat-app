@@ -1,0 +1,1663 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Chunkr API",
+    "description": "API service for document layout analysis and chunking to convert document into RAG/LLM-ready data.",
+    "contact": {
+      "name": "Chunkr",
+      "url": "https://chunkr.ai",
+      "email": "ishaan@lumina.sh"
+    },
+    "license": {
+      "name": ""
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.chunkr.ai",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/api/v1/task/parse": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Create Task",
+        "description": "Queues a document for processing and returns a TaskResponse containing:\n- Task ID for status polling\n- Initial configuration\n- File metadata\n- Processing status\n- Creation timestamp\n- Presigned URLs for file access\n\nThe returned task will typically be in a `Starting` or `Processing` state.\nUse the `GET /task/{task_id}` endpoint to poll for completion.",
+        "operationId": "create_task_route",
+        "requestBody": {
+          "description": "JSON request to create a task",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Detailed information describing the task, its status and processed outputs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error related to creating the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/api/v1/task/{task_id}": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Get Task",
+        "description": "Retrieves detailed information about a task by its ID, including:\n- Processing status\n- Task configuration\n- Output data (if processing is complete)\n- File metadata (name, page count)\n- Timestamps (created, started, finished)\n- Presigned URLs for accessing files\n\nThis endpoint can be used to:\n1. Poll the task status during processing\n2. Retrieve the final output once processing is complete\n3. Access task metadata and configuration",
+        "operationId": "get_task_route",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Id of the task to retrieve",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "base64_urls",
+            "in": "query",
+            "description": "Whether to return base64 encoded URLs. If false, the URLs will be returned as presigned URLs.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "include_chunks",
+            "in": "query",
+            "description": "Whether to include chunks in the output response",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed information describing the task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error related to getting the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Delete Task",
+        "description": "Delete a task by its ID.\n\nRequirements:\n- Task must have status `Succeeded` or `Failed`",
+        "operationId": "delete_task_route",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Id of the task to delete",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task deleted successfully"
+          },
+          "500": {
+            "description": "Internal server error related to deleting the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/api/v1/task/{task_id}/cancel": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Cancel Task",
+        "description": "Cancel a task that hasn't started processing yet:\n- For new tasks: Status will be updated to `Cancelled`\n- For updating tasks: Task will revert to the previous state\n\nRequirements:\n- Task must have status `Starting`",
+        "operationId": "cancel_task_route",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Id of the task to cancel",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task cancelled successfully"
+          },
+          "500": {
+            "description": "Internal server error related to cancelling the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/api/v1/task/{task_id}/parse": {
+      "patch": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Update Task",
+        "description": "Updates an existing task's configuration and reprocesses the document.\nThe original configuration will be used for all values that are not provided in the update.\n\nRequirements:\n- Task must have status `Succeeded` or `Failed`\n- New configuration must be different from the current one\n\nThe returned task will typically be in a `Starting` or `Processing` state.\nUse the `GET /task/{task_id}` endpoint to poll for completion.",
+        "operationId": "update_task_route",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "JSON request to update an task",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Detailed information describing the task, its status and processed outputs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error related to updating the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Get Tasks",
+        "description": "Retrieves a list of tasks\n\nExample usage:\n`GET /api/v1/tasks?page=1&limit=10&include_chunks=false`",
+        "operationId": "get_tasks_route",
+        "parameters": [
+          {
+            "name": "base64_urls",
+            "in": "query",
+            "description": "Whether to return base64 encoded URLs. If false, the URLs will be returned as presigned URLs.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "End date",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "include_chunks",
+            "in": "query",
+            "description": "Whether to include chunks in the output response",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of tasks per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Start date",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed information describing the task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskResponse"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error related to getting the task",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api_key": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Confirmation that the service can respond to requests",
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "Confirmation that the service can respond to requests and the version of the service",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AutoGenerationConfig": {
+        "type": "object",
+        "description": "Controls the processing and generation for the segment.\n- `crop_image` controls whether to crop the file's images to the segment's bounding box.\n  The cropped image will be stored in the segment's `image` field. Use `All` to always crop,\n  or `Auto` to only crop when needed for post-processing.\n- `html` is the HTML output for the segment, generated either through heuristic (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `llm` is the LLM-generated output for the segment, this uses off-the-shelf models to generate a custom output for the segment\n- `markdown` is the Markdown output for the segment, generated either through heuristic (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `embed_sources` defines which content sources will be included in the chunk's embed field and counted towards the chunk length.\n  The array's order determines the sequence in which content appears in the embed field (e.g., [Markdown, LLM] means Markdown content\n  is followed by LLM content). This directly affects what content is available for embedding and retrieval.",
+        "properties": {
+          "crop_image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CroppingStrategy"
+              }
+            ],
+            "default": "Auto"
+          },
+          "embed_sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmbedSource"
+            },
+            "default": "[Markdown]"
+          },
+          "extended_context": {
+            "type": "boolean",
+            "description": "Use the full page image as context for LLM generation",
+            "default": false
+          },
+          "html": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "Auto"
+          },
+          "llm": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "markdown": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "Auto"
+          }
+        }
+      },
+      "BoundingBox": {
+        "type": "object",
+        "description": "Bounding box for an item. It is used for chunks, segments and OCR results.",
+        "required": [
+          "left",
+          "top",
+          "width",
+          "height"
+        ],
+        "properties": {
+          "height": {
+            "type": "number",
+            "format": "float",
+            "description": "The height of the bounding box."
+          },
+          "left": {
+            "type": "number",
+            "format": "float",
+            "description": "The left coordinate of the bounding box."
+          },
+          "top": {
+            "type": "number",
+            "format": "float",
+            "description": "The top coordinate of the bounding box."
+          },
+          "width": {
+            "type": "number",
+            "format": "float",
+            "description": "The width of the bounding box."
+          }
+        }
+      },
+      "Chunk": {
+        "type": "object",
+        "required": [
+          "chunk_length",
+          "segments"
+        ],
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "description": "The unique identifier for the chunk."
+          },
+          "chunk_length": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The total number of tokens in the chunk. Calculated by the `tokenizer`.",
+            "minimum": 0
+          },
+          "embed": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Suggested text to be embedded for the chunk. This text is generated by combining the embed content\nfrom each segment according to the configured embed sources (HTML, Markdown, LLM, or Content).\nCan be configured using `embed_sources` in the `SegmentProcessing` configuration."
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "description": "Collection of document segments that form this chunk.\nWhen `target_chunk_length` > 0, contains the maximum number of segments\nthat fit within that length (segments remain intact).\nOtherwise, contains exactly one segment."
+          }
+        }
+      },
+      "ChunkProcessing": {
+        "type": "object",
+        "description": "Controls the setting for the chunking and post-processing of each chunk.",
+        "properties": {
+          "ignore_headers_and_footers": {
+            "type": "boolean",
+            "description": "Whether to ignore headers and footers in the chunking process.\nThis is recommended as headers and footers break reading order across pages.",
+            "default": true
+          },
+          "target_length": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The target number of words in each chunk. If 0, each chunk will contain a single segment.",
+            "default": 512,
+            "minimum": 0
+          },
+          "tokenizer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenizerType",
+                "description": "The tokenizer to use for the chunking process."
+              }
+            ],
+            "default": "Word"
+          }
+        }
+      },
+      "Configuration": {
+        "type": "object",
+        "required": [
+          "chunk_processing",
+          "high_resolution",
+          "ocr_strategy",
+          "segment_processing",
+          "segmentation_strategy",
+          "error_handling",
+          "llm_processing"
+        ],
+        "properties": {
+          "chunk_processing": {
+            "$ref": "#/components/schemas/ChunkProcessing"
+          },
+          "error_handling": {
+            "$ref": "#/components/schemas/ErrorHandlingStrategy"
+          },
+          "expires_in": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The number of seconds until task is deleted.\nExpired tasks can **not** be updated, polled or accessed via web interface."
+          },
+          "high_resolution": {
+            "type": "boolean",
+            "description": "Whether to use high-resolution images for cropping and post-processing."
+          },
+          "input_file_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The presigned URL of the input file."
+          },
+          "json_schema": {
+            "deprecated": true
+          },
+          "llm_processing": {
+            "$ref": "#/components/schemas/LlmProcessing"
+          },
+          "model": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Model"
+              }
+            ]
+          },
+          "ocr_strategy": {
+            "$ref": "#/components/schemas/OcrStrategy"
+          },
+          "pipeline": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PipelineType"
+              }
+            ]
+          },
+          "segment_processing": {
+            "$ref": "#/components/schemas/SegmentProcessing"
+          },
+          "segmentation_strategy": {
+            "$ref": "#/components/schemas/SegmentationStrategy"
+          },
+          "target_chunk_length": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The target number of words in each chunk. If 0, each chunk will contain a single segment.",
+            "deprecated": true,
+            "minimum": 0
+          }
+        }
+      },
+      "CreateForm": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "chunk_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkProcessing"
+              }
+            ]
+          },
+          "error_handling": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ErrorHandlingStrategy"
+              }
+            ],
+            "default": "Fail"
+          },
+          "expires_in": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The number of seconds until task is deleted.\nExpired tasks can **not** be updated, polled or accessed via web interface."
+          },
+          "file": {
+            "type": "string",
+            "description": "The file to be uploaded. Can be a URL or a base64 encoded file."
+          },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name of the file to be uploaded. If not set a name will be generated."
+          },
+          "high_resolution": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether to use high-resolution images for cropping and post-processing. (Latency penalty: ~7 seconds per page)",
+            "default": true
+          },
+          "llm_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmProcessing"
+              }
+            ]
+          },
+          "ocr_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OcrStrategy"
+              }
+            ],
+            "default": "All"
+          },
+          "pipeline": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PipelineType",
+                "description": "Choose the provider whose models will be used for segmentation and OCR.\nThe output will be unified to the Chunkr `output` format."
+              }
+            ],
+            "default": "Azure"
+          },
+          "segment_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentProcessing"
+              }
+            ]
+          },
+          "segmentation_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentationStrategy"
+              }
+            ],
+            "default": "LayoutAnalysis"
+          }
+        }
+      },
+      "CreateFormMultipart": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "chunk_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkProcessing"
+              }
+            ]
+          },
+          "expires_in": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "binary",
+            "description": "The number of seconds until task is deleted.\nExpired tasks can **not** be updated, polled or accessed via web interface."
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "The file to be uploaded."
+          },
+          "high_resolution": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "format": "binary",
+            "description": "Whether to use high-resolution images for cropping and post-processing. (Latency penalty: ~7 seconds per page)",
+            "default": false
+          },
+          "ocr_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OcrStrategy"
+              }
+            ],
+            "default": "All"
+          },
+          "pipeline": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PipelineType",
+                "description": "The PipelineType to use for processing.\nIf pipeline is set to Azure then Azure layout analysis will be used for segmentation and OCR.\nThe output will be unified to the Chunkr `output` format."
+              }
+            ]
+          },
+          "segment_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentProcessing"
+              }
+            ]
+          },
+          "segmentation_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentationStrategy"
+              }
+            ],
+            "default": "LayoutAnalysis"
+          }
+        }
+      },
+      "CroppingStrategy": {
+        "type": "string",
+        "description": "Controls the cropping strategy for an item (e.g. segment, chunk, etc.)\n- `All` crops all images in the item\n- `Auto` crops images only if required for post-processing",
+        "enum": [
+          "All",
+          "Auto"
+        ]
+      },
+      "EmbedSource": {
+        "type": "string",
+        "enum": [
+          "HTML",
+          "Markdown",
+          "LLM",
+          "Content"
+        ]
+      },
+      "ErrorHandlingStrategy": {
+        "type": "string",
+        "description": "Controls how errors are handled during processing:\n- `Fail`: Stops processing and fails the task when any error occurs\n- `Continue`: Attempts to continue processing despite non-critical errors (eg. LLM refusals etc.)",
+        "enum": [
+          "Fail",
+          "Continue"
+        ]
+      },
+      "FallbackStrategy": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "No fallback will be used",
+            "enum": [
+              "None"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "Use the system default fallback model",
+            "enum": [
+              "Default"
+            ]
+          },
+          {
+            "type": "object",
+            "description": "Use a specific model as fallback",
+            "required": [
+              "Model"
+            ],
+            "properties": {
+              "Model": {
+                "type": "string",
+                "description": "Use a specific model as fallback"
+              }
+            }
+          }
+        ],
+        "description": "Specifies the fallback strategy for LLM processing\n\nThis can be:\n1. None - No fallback will be used\n2. Default - The system default fallback model will be used\n3. Model - A specific model ID will be used as fallback (check the documentation for the models.)"
+      },
+      "GenerationStrategy": {
+        "type": "string",
+        "enum": [
+          "LLM",
+          "Auto"
+        ]
+      },
+      "LlmGenerationConfig": {
+        "type": "object",
+        "description": "Controls the processing and generation for the segment.\n- `crop_image` controls whether to crop the file's images to the segment's bounding box.\n  The cropped image will be stored in the segment's `image` field. Use `All` to always crop,\n  or `Auto` to only crop when needed for post-processing.\n- `html` is the HTML output for the segment, generated either through huerstics (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `llm` is the LLM-generated output for the segment, this uses off-the-shelf models to generate a custom output for the segment\n- `markdown` is the Markdown output for the segment, generated either through huerstics (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `embed_sources` defines which content sources will be included in the chunk's embed field and counted towards the chunk length.\n  The array's order determines the sequence in which content appears in the embed field (e.g., [Markdown, LLM] means Markdown content\n  is followed by LLM content). This directly affects what content is available for embedding and retrieval.",
+        "properties": {
+          "crop_image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CroppingStrategy"
+              }
+            ],
+            "default": "Auto"
+          },
+          "embed_sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmbedSource"
+            },
+            "default": "[Markdown]"
+          },
+          "extended_context": {
+            "type": "boolean",
+            "description": "Use the full page image as context for LLM generation",
+            "default": false
+          },
+          "html": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "LLM"
+          },
+          "llm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Prompt for the LLM model"
+          },
+          "markdown": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "LLM"
+          }
+        }
+      },
+      "LlmProcessing": {
+        "type": "object",
+        "description": "Controls the LLM used for the task.",
+        "properties": {
+          "fallback_strategy": {
+            "$ref": "#/components/schemas/FallbackStrategy",
+            "description": "The fallback strategy to use for the LLMs in the task."
+          },
+          "max_completion_tokens": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The maximum number of tokens to generate.",
+            "minimum": 0
+          },
+          "model_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The ID of the model to use for the task. If not provided, the default model will be used.\nPlease check the documentation for the model you want to use."
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "description": "The temperature to use for the LLM."
+          }
+        }
+      },
+      "Model": {
+        "type": "string",
+        "enum": [
+          "Fast",
+          "HighQuality"
+        ],
+        "deprecated": true
+      },
+      "OCRResult": {
+        "type": "object",
+        "description": "OCR results for a segment",
+        "required": [
+          "bbox",
+          "text"
+        ],
+        "properties": {
+          "bbox": {
+            "$ref": "#/components/schemas/BoundingBox"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float",
+            "description": "The confidence score of the recognized text."
+          },
+          "text": {
+            "type": "string",
+            "description": "The recognized text of the OCR result."
+          }
+        }
+      },
+      "OcrStrategy": {
+        "type": "string",
+        "description": "Controls the Optical Character Recognition (OCR) strategy.\n- `All`: Processes all pages with OCR. (Latency penalty: ~0.5 seconds per page)\n- `Auto`: Selectively applies OCR only to pages with missing or low-quality text. When text layer is present the bounding boxes from the text layer are used.",
+        "enum": [
+          "All",
+          "Auto"
+        ]
+      },
+      "OutputResponse": {
+        "type": "object",
+        "description": "The processed results of a document analysis task",
+        "required": [
+          "chunks"
+        ],
+        "properties": {
+          "chunks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Chunk"
+            },
+            "description": "Collection of document chunks, where each chunk contains one or more segments"
+          },
+          "extracted_json": {
+            "description": "The extracted JSON from the document.",
+            "deprecated": true
+          },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name of the file."
+          },
+          "page_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The number of pages in the file.",
+            "minimum": 0
+          },
+          "pdf_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The presigned URL of the PDF file."
+          }
+        }
+      },
+      "PictureCroppingStrategy": {
+        "type": "string",
+        "description": "Controls the cropping strategy for an item (e.g. segment, chunk, etc.)\n- `All` crops all images in the item\n- `Auto` crops images only if required for post-processing",
+        "enum": [
+          "All",
+          "Auto"
+        ]
+      },
+      "PictureGenerationConfig": {
+        "type": "object",
+        "description": "Controls the processing and generation for the segment.\n- `crop_image` controls whether to crop the file's images to the segment's bounding box.\n  The cropped image will be stored in the segment's `image` field. Use `All` to always crop,\n  or `Auto` to only crop when needed for post-processing.\n- `html` is the HTML output for the segment, generated either through heuristic (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `llm` is the LLM-generated output for the segment, this uses off-the-shelf models to generate a custom output for the segment\n- `markdown` is the Markdown output for the segment, generated either through heuristic (`Auto`) or using Chunkr fine-tuned models (`LLM`)\n- `embed_sources` defines which content sources will be included in the chunk's embed field and counted towards the chunk length.\n  The array's order determines the sequence in which content appears in the embed field (e.g., [Markdown, LLM] means Markdown content\n  is followed by LLM content). This directly affects what content is available for embedding and retrieval.",
+        "properties": {
+          "crop_image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PictureCroppingStrategy"
+              }
+            ],
+            "default": "All"
+          },
+          "embed_sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmbedSource"
+            },
+            "default": "[Markdown]"
+          },
+          "extended_context": {
+            "type": "boolean",
+            "description": "Use the full page image as context for LLM generation",
+            "default": false
+          },
+          "html": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "Auto"
+          },
+          "llm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Prompt for the LLM model"
+          },
+          "markdown": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GenerationStrategy"
+              }
+            ],
+            "default": "Auto"
+          }
+        }
+      },
+      "PipelineType": {
+        "type": "string",
+        "enum": [
+          "Azure",
+          "Chunkr"
+        ]
+      },
+      "Segment": {
+        "type": "object",
+        "required": [
+          "bbox",
+          "page_height",
+          "page_width",
+          "page_number",
+          "segment_id",
+          "segment_type"
+        ],
+        "properties": {
+          "bbox": {
+            "$ref": "#/components/schemas/BoundingBox"
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "float",
+            "description": "Confidence score of the layout analysis model"
+          },
+          "content": {
+            "type": "string",
+            "description": "Text content of the segment. Calculated by the OCR results."
+          },
+          "html": {
+            "type": "string",
+            "description": "HTML representation of the segment."
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Presigned URL to the image of the segment."
+          },
+          "llm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "LLM representation of the segment."
+          },
+          "markdown": {
+            "type": "string",
+            "description": "Markdown representation of the segment."
+          },
+          "ocr": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OCRResult"
+            },
+            "description": "OCR results for the segment."
+          },
+          "page_height": {
+            "type": "number",
+            "format": "float",
+            "description": "Height of the page containing the segment."
+          },
+          "page_number": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Page number of the segment.",
+            "minimum": 0
+          },
+          "page_width": {
+            "type": "number",
+            "format": "float",
+            "description": "Width of the page containing the segment."
+          },
+          "segment_id": {
+            "type": "string",
+            "description": "Unique identifier for the segment."
+          },
+          "segment_type": {
+            "$ref": "#/components/schemas/SegmentType"
+          }
+        }
+      },
+      "SegmentProcessing": {
+        "type": "object",
+        "description": "Controls the post-processing of each segment type.\nAllows you to generate HTML and Markdown from chunkr models for each segment type.\nBy default, the HTML and Markdown are generated manually using the segmentation information except for `Table`, `Formula` and `Picture`.\nYou can optionally configure custom LLM prompts and models to generate an additional `llm` field with LLM-processed content for each segment type.\n\nThe configuration of which content sources (HTML, Markdown, LLM, Content) of the segment\nshould be included in the chunk's `embed` field and counted towards the chunk length can be configured through the `embed_sources` setting.",
+        "properties": {
+          "Caption": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Footnote": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Formula": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmGenerationConfig"
+              }
+            ]
+          },
+          "ListItem": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Page": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmGenerationConfig"
+              }
+            ]
+          },
+          "PageFooter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "PageHeader": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Picture": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PictureGenerationConfig"
+              }
+            ]
+          },
+          "SectionHeader": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Table": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmGenerationConfig"
+              }
+            ]
+          },
+          "Text": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          },
+          "Title": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AutoGenerationConfig"
+              }
+            ]
+          }
+        }
+      },
+      "SegmentType": {
+        "type": "string",
+        "description": "All the possible types for a segment.\nNote: Different configurations will produce different types.\nPlease refer to the documentation for more information.",
+        "enum": [
+          "Caption",
+          "Footnote",
+          "Formula",
+          "ListItem",
+          "Page",
+          "PageFooter",
+          "PageHeader",
+          "Picture",
+          "SectionHeader",
+          "Table",
+          "Text",
+          "Title"
+        ]
+      },
+      "SegmentationStrategy": {
+        "type": "string",
+        "description": "Controls the segmentation strategy:\n- `LayoutAnalysis`: Analyzes pages for layout elements (e.g., `Table`, `Picture`, `Formula`, etc.) using bounding boxes. Provides fine-grained segmentation and better chunking. (Latency penalty: ~TBD seconds per page).\n- `Page`: Treats each page as a single segment. Faster processing, but without layout element detection and only simple chunking.",
+        "enum": [
+          "LayoutAnalysis",
+          "Page"
+        ]
+      },
+      "Status": {
+        "type": "string",
+        "description": "The status of the task.",
+        "enum": [
+          "Starting",
+          "Processing",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ]
+      },
+      "TaskResponse": {
+        "type": "object",
+        "required": [
+          "configuration",
+          "created_at",
+          "message",
+          "status",
+          "task_id"
+        ],
+        "properties": {
+          "configuration": {
+            "$ref": "#/components/schemas/Configuration"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time when the task was created and queued."
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The date and time when the task will expire."
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The date and time when the task was finished."
+          },
+          "message": {
+            "type": "string",
+            "description": "A message describing the task's status or any errors that occurred."
+          },
+          "output": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OutputResponse"
+              }
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The date and time when the task was started."
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "The unique identifier for the task."
+          },
+          "task_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The presigned URL of the task."
+          }
+        }
+      },
+      "Tokenizer": {
+        "type": "string",
+        "description": "Common tokenizers used for text processing.\n\nThese values represent standard tokenization approaches and popular pre-trained\ntokenizers from the Hugging Face ecosystem.",
+        "enum": [
+          "Word",
+          "Cl100kBase",
+          "XlmRobertaBase",
+          "BertBaseUncased"
+        ]
+      },
+      "TokenizerType": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Use one of the predefined tokenizer types",
+            "required": [
+              "Enum"
+            ],
+            "properties": {
+              "Enum": {
+                "$ref": "#/components/schemas/Tokenizer",
+                "description": "Use one of the predefined tokenizer types"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Use any Hugging Face tokenizer by specifying its model ID\nExamples: \"Qwen/Qwen-tokenizer\", \"facebook/bart-large\"",
+            "required": [
+              "String"
+            ],
+            "properties": {
+              "String": {
+                "type": "string",
+                "description": "Use any Hugging Face tokenizer by specifying its model ID\nExamples: \"Qwen/Qwen-tokenizer\", \"facebook/bart-large\""
+              }
+            }
+          }
+        ],
+        "description": "Specifies which tokenizer to use for the chunking process.\n\nThis type supports two ways of specifying a tokenizer:\n1. Using a predefined tokenizer from the `Tokenizer` enum\n2. Using any Hugging Face tokenizer by providing its model ID as a string\n   (e.g. \"facebook/bart-large\", \"Qwen/Qwen-tokenizer\", etc.)\n\nWhen using a string, any valid Hugging Face tokenizer ID can be specified,\nwhich will be loaded using the Hugging Face tokenizers library."
+      },
+      "UpdateForm": {
+        "type": "object",
+        "properties": {
+          "chunk_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkProcessing"
+              }
+            ]
+          },
+          "error_handling": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ErrorHandlingStrategy"
+              }
+            ]
+          },
+          "expires_in": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The number of seconds until task is deleted.\nExpired tasks can **not** be updated, polled or accessed via web interface."
+          },
+          "high_resolution": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether to use high-resolution images for cropping and post-processing. (Latency penalty: ~7 seconds per page)"
+          },
+          "llm_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LlmProcessing"
+              }
+            ]
+          },
+          "ocr_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OcrStrategy"
+              }
+            ]
+          },
+          "pipeline": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PipelineType",
+                "description": "Choose the provider whose models will be used for segmentation and OCR.\nThe output will be unified to the Chunkr `output` format."
+              }
+            ]
+          },
+          "segment_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentProcessing"
+              }
+            ]
+          },
+          "segmentation_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentationStrategy"
+              }
+            ]
+          }
+        }
+      },
+      "UpdateFormMultipart": {
+        "type": "object",
+        "properties": {
+          "chunk_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ChunkProcessing"
+              }
+            ]
+          },
+          "expires_in": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "binary",
+            "description": "The number of seconds until task is deleted.\nExpried tasks can **not** be updated, polled or accessed via web interface."
+          },
+          "high_resolution": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "format": "binary",
+            "description": "Whether to use high-resolution images for cropping and post-processing. (Latency penalty: ~7 seconds per page)"
+          },
+          "ocr_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OcrStrategy"
+              }
+            ]
+          },
+          "pipeline": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PipelineType",
+                "description": "The pipeline to use for processing.\nIf pipeline is set to Azure then Azure layout analysis will be used for segmentation and OCR.\nThe output will be unified to the Chunkr output."
+              }
+            ]
+          },
+          "segment_processing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentProcessing"
+              }
+            ]
+          },
+          "segmentation_strategy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SegmentationStrategy"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Endpoint for checking the health of the service."
+    },
+    {
+      "name": "Task",
+      "description": "Endpoints for managing individual tasks - create, read, update, delete and cancel operations"
+    },
+    {
+      "name": "Tasks",
+      "description": "Endpoints for listing multiple tasks"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "folders": [
+    {
+      "name": "web",
+      "path": "../apps/web",
+    },
+    {
+      "name": "api",
+      "path": "../apps/api",
+    },
+    {
+      "name": "root",
+      "path": "../",
+    },
+  ],
+  "extensions": {
+    "recommendations": ["joshx.workspace-terminals"],
+  },
+}

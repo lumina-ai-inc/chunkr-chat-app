@@ -1,0 +1,9 @@
+{
+  "name": "chunkr-chat-app-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run src/main.py",
+    "generate:requirements": "uv export --without-hashes --format=requirements.txt > requirements.txt"
+  }
+}
