@@ -31,8 +31,6 @@ Here's a high level overview of what will be covered in this guide:
 
 &ndash; [Putting It All Together](#putting-it-all-together)
 
-Find the complete source code for this guide [here](./apps/).
-
 ## Database Setup
 
 Let's kick things off by setting up our database with the required tables and the core matching functionality—used for semantic search. Head over to [Supabase](https://supabase.com/) to create a new project or spin up a [local instance](https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=brew).
@@ -276,7 +274,7 @@ Find the complete implementation of the pipeline [here](./apps/api/src/routes/up
 
 The final step is implementing response generation. We use the [OpenAI Python SDK](https://github.com/openai/openai-python) configured with [OpenRouter](https://openrouter.ai/) for flexibility across different model providers. However, there's a fundamental challenge: the model has no inherent way to access the document content we've processed.
 
-This is where [function calling](https://platform.openai.com/docs/guides/function-calling) comes in. Using our semantic search function combined with the ouputs from Chunkr, we have set up some basic functions at [tools.py](./apps/api/src/tools.py).
+This is where [function calling](https://platform.openai.com/docs/guides/function-calling) comes in. Using our semantic search function combined with the ouputs from Chunkr, we have set up some basic functions at [tools.py](./apps/api/src/tools.py). These functions enable the model to pinpoint to the exact segment that it needs to reference. Although, the function can be easily edited to return a chunk-based response.
 
 However, challenges extend beyond basic retrieval. We need to make sure the model always responds in a predictable format. Also, we need a foolproof way to handle in-line citations that prevents unwanted information in the final response.
 
@@ -316,7 +314,7 @@ Find the complete implementation of the response generation flow [here](./apps/a
 
 To bring everything together, we use a simple React application set up with [Next.js](https://nextjs.org/) and [react-pdf](https://github.com/wojtekmaj/react-pdf) to preview documents.
 
-A simple `GET` request returns the task results to the frontend where we extract bounding box coordinates for each segment. We then associate them with their `chunk_id` and page details.
+A simple `GET` request returns the task results to the frontend where we extract bounding box coordinates for each segment. We then associate them with their `segment_id` and page details.
 
 Here is a snippet of how it looks:
 
@@ -335,14 +333,13 @@ const bboxes = useMemo(() => {
       page_height: number
     }> = []
     chunks.forEach((chunk) => {
-      const chunkId = chunk.chunk_id || ''
       chunk.segments.forEach((segment) => {
         allBboxes.push({
           bbox: {
             ...segment.bbox,
             page_number: segment.page_number,
           },
-          id: chunkId,
+          id: segment.segment_id,
           page_width: segment.page_width,
           page_height: segment.page_height,
         })
@@ -352,6 +349,14 @@ const bboxes = useMemo(() => {
   }, [chunks])
 ```
 
-Rendering is handled by a lightweight component called [bounding-box-display.tsx](./apps/web/src/components/chat/bounding-box-display.tsx), which overlays bounding boxes at the exact coordinates.
+Rendering for bounding boxes is handled by a lightweight component called [bounding-box-display.tsx](./apps/web/src/components/chat/bounding-box-display.tsx). The component could also be configured to render chunk-based boxes instead of segment-based ones.
 
 Find the complete implementation of the frontend [here](./apps/web/).
+
+## Conclusion
+
+You now have a complete evidence-based LLM application! The system provides precise citations with bounding boxes and enhances model responses with relevant information-text, images, and tables. This should serve as a solid starting point to build on top of.
+
+Check out the demo video to see the application in action.
+
+Find the complete source code for this guide on GitHub [here](https://github.com/lumina-ai-inc/chunkr-chat-app).
