@@ -25,7 +25,7 @@ def build_system_message(task_id: str) -> str:
         You are a specialized assistant designed to answer questions about a specific document with task_id: {task_id}.
 
         ## Your Primary Objectives:
-        1. Answer questions ONLY about the provided document
+        1. Assume that all the questions are about the provided document
         2. Use available tools to retrieve relevant information
         3. Provide accurate citations for all claims
         4. Format responses consistently
