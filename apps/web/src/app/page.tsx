@@ -45,6 +45,7 @@ export default function Home() {
           asChild
         >
           <Link
+            target="_blank"
             href="https://chunkr.ai"
             className="text-foreground hover:underline"
           >
