@@ -9,14 +9,14 @@ from chunkr_ai import Chunkr
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 from chunkr_config import get_chunkr_config
-from db import get_supabase_client
+from db import get_db_client
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 TOKEN_LIMIT = 8191
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
-supabase = get_supabase_client()
+supabase = get_db_client()
 encoder = tiktoken.get_encoding("cl100k_base")
 
 

@@ -6,7 +6,7 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - supabase-db
+      - postgres-db
     env_file:
       - ./apps/api/.env
     networks:
@@ -25,18 +25,17 @@ services:
     networks:
       - app-network
 
-  supabase-db:
+  postgres-db:
     image: supabase/postgres:15.6.1.118
     ports:
-      - 54321:54321
-      - 54322:54322
+      - 54321:5432 # Map local 54321 to container's PostgreSQL port 5432
+      - 54322:6543 # Map local 54322 to container's pooler port 6543
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     command:
       - "postgres"
       - "-c"
@@ -44,7 +43,9 @@ services:
       - "-c"
       - "wal_level=logical"
       - "-c"
-      - "log_statement=all"
+      - "log_statement=none"
+      - "-c"
+      - "log_min_messages=error"
       - "-c"
       - "log_destination=stderr"
       - "-c"

@@ -217,7 +217,7 @@ def get_database_connection() -> Optional[Database]:
     return None
 
 
-def get_supabase_client() -> Client:
+def get_db_client() -> Client:
     """Initialize and return a Supabase client.
 
     Returns:
@@ -225,7 +225,7 @@ def get_supabase_client() -> Client:
     """
     load_dotenv()
 
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_KEY")
+    url = os.getenv("DATABASE_URL")
+    key = os.getenv("DATABASE_KEY")
 
-    return create_client(supabase_url, supabase_key)
+    return create_client(url, key)

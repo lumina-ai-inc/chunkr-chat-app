@@ -1,9 +1,9 @@
-from db import get_supabase_client
+from db import get_db_client
 from chunkr_ai import Chunkr
 import openai
 import os
 
-supabase = get_supabase_client()
+supabase = get_db_client()
 
 
 async def get_chunk_information(chunk_id: str, file_id: str):
