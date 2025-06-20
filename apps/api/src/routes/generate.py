@@ -11,13 +11,14 @@ from tools import tools, TOOL_MAPPING
 
 router = APIRouter()
 
+
 def build_system_message(task_id: str) -> str:
     """
     Build a system message for the assistant with document-specific instructions.
-    
+
     Args:
         task_id (str): The unique identifier for the document/task
-        
+
     Returns:
         str: A formatted system message containing instructions for the assistant
     """
@@ -70,13 +71,14 @@ def build_system_message(task_id: str) -> str:
         - If you cannot find relevant information, modify the query for the query_embeddings tool and try again.
     """
 
+
 def ensure_valid_message_id(message):
     """
     Ensure the message has a valid ID that starts with 'msg_'.
-    
+
     Args:
         message (dict): The message object to add an ID to
-        
+
     Returns:
         dict: A copy of the message with a valid ID added
     """
@@ -84,82 +86,94 @@ def ensure_valid_message_id(message):
     msg_copy["id"] = f"msg_{uuid.uuid4().hex}"
     return msg_copy
 
+
 async def execute_tool_call(messages: list, tool_call: dict):
     """
     Execute a tool call and return both the tool info and result.
-    
+
     Args:
         messages (list): List of chat messages to append the tool call and result to
         tool_call (dict): The tool call object containing function name and arguments
-        
+
     Returns:
         dict: Tool information containing type, tool_name, and arguments
-        
+
     Raises:
         ValueError: If the tool name is not found in TOOL_MAPPING
     """
-    messages.append(ensure_valid_message_id({
-        "role": "assistant",
-        "content": None,
-        "tool_calls": [
+    messages.append(
+        ensure_valid_message_id(
             {
-                "id": tool_call.id,
-                "type": "function",
-                "function": {
-                    "name": tool_call.function.name,
-                    "arguments": tool_call.function.arguments
-                }
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": tool_call.id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments,
+                        },
+                    }
+                ],
             }
-        ],
-    }))
-    
+        )
+    )
+
     name = tool_call.function.name
     args = json.loads(tool_call.function.arguments)
     tool_func = TOOL_MAPPING.get(name)
     if not tool_func:
         raise ValueError(f"Unknown tool: {name}")
-    
-    tool_info = {
-        "type": "tool_call",
-        "tool_name": name,
-        "arguments": args
-    }
-    
+
+    tool_info = {"type": "tool_call", "tool_name": name, "arguments": args}
+
     if asyncio.iscoroutinefunction(tool_func):
         tool_result = await tool_func(**args)
     else:
         tool_result = tool_func(**args)
-    
-    if name in ("query_embeddings") and isinstance(tool_result, dict) and "response" in tool_result:
+
+    if (
+        name in ("query_embeddings")
+        and isinstance(tool_result, dict)
+        and "response" in tool_result
+    ):
         content = tool_result["response"]
     else:
         content = tool_result
-        
-    messages.append(ensure_valid_message_id({
-        "role": "tool",
-        "tool_call_id": tool_call.id,
-        "content": json.dumps(content) if isinstance(content, (dict, list)) else str(content),
-    }))
-    
+
+    messages.append(
+        ensure_valid_message_id(
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(content)
+                if isinstance(content, (dict, list))
+                else str(content),
+            }
+        )
+    )
+
     return tool_info
+
 
 @router.post("/generate")
 async def chat_route(request: Request):
     """
     Handle chat generation requests with streaming responses.
-    
+
     This endpoint processes chat messages, executes tool calls when needed,
     and streams back the assistant's response with proper citations and images.
-    
+
     Args:
         request (Request): FastAPI request object containing JSON payload with:
             - messages (list): List of chat messages
             - task_id (str): Unique identifier for the document/task
             - model (str): The AI model to use for generation
-            
+
     Returns:
         StreamingResponse: A streaming response containing tool calls and final response
-        
+
     Raises:
         HTTPException: If required fields (messages, task_id, model) are missing
     """
@@ -169,24 +183,31 @@ async def chat_route(request: Request):
     model = payload.get("model")
 
     if not messages or not task_id or not model:
-        raise HTTPException(status_code=400, detail="`messages` and `task_id` are required")
-    
+        raise HTTPException(
+            status_code=400, detail="`messages` and `task_id` are required"
+        )
+
     async def event_generator():
         """
         Generate streaming events for tool calls and final response.
-        
+
         This async generator handles the conversation flow, executing tool calls
         as needed and streaming the final assistant response with proper formatting.
-        
+
         Yields:
             str: JSON-formatted chunks containing tool calls or response content
         """
-        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
         system_message = build_system_message(task_id)
-        
+
         # Create chat messages with proper IDs
-        chat_messages = [ensure_valid_message_id({"role": "system", "content": system_message})]
-        
+        chat_messages = [
+            ensure_valid_message_id({"role": "system", "content": system_message})
+        ]
+
         # Add messages with valid IDs
         for msg in messages:
             chat_messages.append(ensure_valid_message_id(msg))
@@ -199,16 +220,22 @@ async def chat_route(request: Request):
                 tools=tools,
             )
             message = resp.choices[0].message
-            
+
             if message.tool_calls:
                 # Stream tool call information
-                tool_info = await execute_tool_call(chat_messages, message.tool_calls[0])
+                tool_info = await execute_tool_call(
+                    chat_messages, message.tool_calls[0]
+                )
                 yield json.dumps(tool_info) + "\n"
                 continue
-            
+
             # No more tool calls, append final assistant response and break
             assistant_content = message.content or ""
-            chat_messages.append(ensure_valid_message_id({"role": "assistant", "content": assistant_content}))
+            chat_messages.append(
+                ensure_valid_message_id(
+                    {"role": "assistant", "content": assistant_content}
+                )
+            )
             break
 
         # Now stream the final assistant's reply
@@ -224,30 +251,36 @@ async def chat_route(request: Request):
                         "type": "object",
                         "properties": {
                             "metadata": {
-                                "type": "object", 
+                                "type": "object",
                                 "properties": {
-                                    "citations": {"type": "array", "items": {"type": "string"}}, 
-                                    "images": {"type": "array", "items": {"type": "string"}}
+                                    "citations": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                    },
+                                    "images": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                    },
                                 },
                                 "required": ["citations", "images"],
-                                "additionalProperties": False
+                                "additionalProperties": False,
                             },
-                            "response": {"type": "string"}
+                            "response": {"type": "string"},
                         },
                         "additionalProperties": False,
-                        "required": ["metadata", "response"]
-                    }
-                }
-            }
+                        "required": ["metadata", "response"],
+                    },
+                },
+            },
         )
-        
+
         # Stream the final response
         for chunk in stream_resp:
             if chunk.choices[0].delta.content:
                 response_chunk = {
                     "type": "response",
-                    "content": chunk.choices[0].delta.content
+                    "content": chunk.choices[0].delta.content,
                 }
                 yield json.dumps(response_chunk) + "\n"
 
-    return StreamingResponse(event_generator(), media_type="text/plain") 
+    return StreamingResponse(event_generator(), media_type="text/plain")
