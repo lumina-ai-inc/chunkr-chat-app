@@ -274,7 +274,7 @@ Find the complete implementation of the pipeline [here](./apps/api/src/routes/up
 
 The final step is implementing response generation. We use the [OpenAI Python SDK](https://github.com/openai/openai-python) configured with [OpenRouter](https://openrouter.ai/) for flexibility across different model providers. However, there's a fundamental challenge: the model has no inherent way to access the document content we've processed.
 
-This is where [function calling](https://platform.openai.com/docs/guides/function-calling) comes in. Using our semantic search function combined with the ouputs from Chunkr, we have set up some basic functions at [tools.py](./apps/api/src/tools.py). These functions enable the model to pinpoint to the exact segment that it needs to reference. Although, the function can be easily edited to return a chunk-based response.
+This is where [function calling](https://platform.openai.com/docs/guides/function-calling) comes in. Using our semantic search function combined with the outputs from Chunkr, we have set up some basic functions at [tools.py](./apps/api/src/tools.py). These functions enable the model to pinpoint to the exact segment that it needs to reference. Although, the function can be easily edited to return a chunk-based response.
 
 However, challenges extend beyond basic retrieval. We need to make sure the model always responds in a predictable format. Also, we need a foolproof way to handle in-line citations that prevents unwanted information in the final response.
 

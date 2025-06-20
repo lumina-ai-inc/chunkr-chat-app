@@ -11,6 +11,7 @@ dependencies = [
     "openai>=1.86.0",
     "psycopg2>=2.9.10",
     "python-multipart>=0.0.20",
+    "ruff>=0.12.0",
     "supabase>=2.15.3",
     "tiktoken>=0.9.0",
     "uvicorn>=0.34.3",

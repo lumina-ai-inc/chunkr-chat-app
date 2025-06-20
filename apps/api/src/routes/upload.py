@@ -57,7 +57,7 @@ async def upload(
         try:
             body = await request.json()
             url = body.get("url")
-        except:
+        except Exception:
             pass
 
         # Validate that only one input is provided
