@@ -93,20 +93,3 @@ jobs:
             ./apps/api/src
             ./.github
           config: ./.typos.toml
-
-  # Overall status check
-  ci-status:
-    name: CI Status
-    runs-on: ubuntu-latest
-    needs: [web-checks, api-checks, spell-check]
-    if: always()
-    
-    steps:
-      - name: Check CI results
-        run: |
-          if [[ "${{ needs.web-checks.result }}" == "failure" || "${{ needs.api-checks.result }}" == "failure" || "${{ needs.spell-check.result }}" == "failure" ]]; then
-            echo "❌ CI checks failed"
-            exit 1
-          else
-            echo "✅ All CI checks passed"
-          fi 
