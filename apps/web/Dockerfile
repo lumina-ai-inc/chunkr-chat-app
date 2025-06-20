@@ -18,7 +18,7 @@ COPY apps/web/ ./apps/web/
 RUN pnpm install --frozen-lockfile
 
 # Prune the monorepo for the "web" workspace using pnpm
-RUN pnpm turbo prune web --docker
+RUN pnpm turbo prune chunkr-chat-app-web --docker
 
 FROM base AS installer
 RUN apk update && apk add --no-cache libc6-compat

@@ -8,6 +8,7 @@ from db import Database
 
 load_dotenv(".env")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -17,17 +18,19 @@ async def lifespan(app: FastAPI):
     db.initialize_database()
     yield
 
+
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"], 
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(upload_router, prefix="/api")
 app.include_router(generate_router, prefix="/api")
+
 
 @app.get("/health")
 async def health_check():
@@ -40,6 +43,7 @@ async def health_check():
         return {"message": "Database is available and connected", "status": "healthy"}
     else:
         return {"message": "Database connection failed", "status": "unhealthy"}
+
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "uv run src/main.py",
-    "generate:requirements": "uv export --without-hashes --format=requirements.txt > requirements.txt"
+    "generate:requirements": "uv export --no-hashes --format=requirements.txt > requirements.txt"
   }
 }
