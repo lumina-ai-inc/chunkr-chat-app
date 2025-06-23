@@ -1,9 +1,10 @@
-from db import get_db_client
+# from db import get_db_client
+from db import get_database_connection
 from chunkr_ai import Chunkr
 import openai
 import os
 
-supabase = get_db_client()
+# supabase = get_db_client()
 
 
 async def get_chunk_information(chunk_id: str, file_id: str):
@@ -72,7 +73,7 @@ async def get_chunk_information(chunk_id: str, file_id: str):
 
 
 async def query_embeddings(
-    query: str, file_id: str, threshold: float = 0.25, limit: int = 3
+    query: str, file_id: str, threshold: float = 0.1, limit: int = 3
 ):
     """
     Search for similar chunks in the database using semantic similarity.
@@ -93,6 +94,7 @@ async def query_embeddings(
             content (str): The chunk content
             similarity (float): Similarity score between query and chunk
     """
+
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
     embedding_response = openai.embeddings.create(
@@ -100,25 +102,52 @@ async def query_embeddings(
     )
     query_embedding = embedding_response.data[0].embedding
 
-    response = supabase.rpc(
-        "match_embeddings",
-        {
-            "query_embedding": query_embedding,
-            "match_threshold": threshold,
-            "match_count": limit,
-            "input_task_id": file_id,
-        },
-    ).execute()
+    db = get_database_connection()
+    if not db:
+        raise Exception("Failed to connect to database")
+    
+    try:
+        # Execute the match_embeddings function directly with proper type casting
+        success = db.execute_query("""
+            SELECT id, content, similarity FROM match_embeddings(%s::vector(1536), %s::float, %s::integer, %s::text)
+        """, (query_embedding, threshold, limit, file_id))
 
-    results = response.data
+        formatted_results_data = []
+        if success and db.cursor.rowcount > 0:
+            results = db.cursor.fetchall()
+            
+            # Convert to list of dictionaries
+            for row in results:
+                formatted_results_data.append({
+                    "id": row[0],
+                    "content": row[1], 
+                    "similarity": row[2]
+                })
+            
+    except Exception:
+        formatted_results_data = []
+    finally:
+        db.close()
+
+    # if using supabase
+    # response = supabase.rpc(
+    #     "match_embeddings",
+    #     {
+    #         "query_embedding": query_embedding,
+    #         "match_threshold": threshold,
+    #         "match_count": limit,
+    #         "input_task_id": file_id,
+    #     },
+    # ).execute()
+    # results = response.data
 
     # Sort by similarity
-    results.sort(key=lambda x: x["similarity"], reverse=True)
+    formatted_results_data.sort(key=lambda x: x["similarity"], reverse=True)
 
     formatted_results = []
 
     # Find segments for the chunk_ids
-    for row in results:
+    for row in formatted_results_data:
         chunk_id = row["id"]
 
         # Get the chunk information
@@ -141,7 +170,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "query_embeddings",
-            "description": "Search for chunks in the database based on the given a query and a file_id",
+            "description": "Search for chunks in the database based on the given a RAG-based query and a file_id",
             "parameters": {
                 "type": "object",
                 "properties": {
