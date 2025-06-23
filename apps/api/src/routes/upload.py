@@ -9,6 +9,7 @@ from chunkr_ai import Chunkr
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 from chunkr_config import get_chunkr_config
+
 # from db import get_db_client
 from db import get_database_connection
 
@@ -153,33 +154,43 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
             if embeddings_data:
                 db = get_database_connection()
                 if not db:
-                    raise HTTPException(status_code=500, detail="Failed to connect to database")
-                
+                    raise HTTPException(
+                        status_code=500, detail="Failed to connect to database"
+                    )
+
                 try:
                     # Insert file record
-                    db.execute_query("""
+                    db.execute_query(
+                        """
                         INSERT INTO public.files (id, file_url, created_at) 
                         VALUES (%s, %s, %s)
                         ON CONFLICT (id) DO NOTHING
-                    """, (task.task_id, task.output.pdf_url, datetime.now().isoformat()), commit=True)
+                    """,
+                        (task.task_id, task.output.pdf_url, datetime.now().isoformat()),
+                        commit=True,
+                    )
 
                     # Insert embeddings
                     for embedding_data in embeddings_data:
-                        db.execute_query("""
+                        db.execute_query(
+                            """
                             INSERT INTO public.embeddings (id, task_id, content, embedding, created_at)
                             VALUES (%s, %s, %s, %s, %s)
                             ON CONFLICT (id) DO UPDATE SET
                                 content = EXCLUDED.content,
                                 embedding = EXCLUDED.embedding,
                                 created_at = EXCLUDED.created_at
-                        """, (
-                            embedding_data["id"],
-                            embedding_data["task_id"], 
-                            embedding_data["content"],
-                            embedding_data["embedding"],
-                            embedding_data["created_at"]
-                        ), commit=True)
-                    
+                        """,
+                            (
+                                embedding_data["id"],
+                                embedding_data["task_id"],
+                                embedding_data["content"],
+                                embedding_data["embedding"],
+                                embedding_data["created_at"],
+                            ),
+                            commit=True,
+                        )
+
                 finally:
                     db.close()
 

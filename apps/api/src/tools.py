@@ -105,25 +105,26 @@ async def query_embeddings(
     db = get_database_connection()
     if not db:
         raise Exception("Failed to connect to database")
-    
+
     try:
         # Execute the match_embeddings function directly with proper type casting
-        success = db.execute_query("""
+        success = db.execute_query(
+            """
             SELECT id, content, similarity FROM match_embeddings(%s::vector(1536), %s::float, %s::integer, %s::text)
-        """, (query_embedding, threshold, limit, file_id))
+        """,
+            (query_embedding, threshold, limit, file_id),
+        )
 
         formatted_results_data = []
         if success and db.cursor.rowcount > 0:
             results = db.cursor.fetchall()
-            
+
             # Convert to list of dictionaries
             for row in results:
-                formatted_results_data.append({
-                    "id": row[0],
-                    "content": row[1], 
-                    "similarity": row[2]
-                })
-            
+                formatted_results_data.append(
+                    {"id": row[0], "content": row[1], "similarity": row[2]}
+                )
+
     except Exception:
         formatted_results_data = []
     finally:
