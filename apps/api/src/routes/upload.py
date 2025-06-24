@@ -204,6 +204,9 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
                 # ).execute()
 
                 # supabase.table("embeddings").upsert(embeddings_data).execute()
+        
+        else:
+            raise HTTPException(status_code=500, detail="Task failed")
 
         return {"task_id": task.task_id}
 
