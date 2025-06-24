@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 from chunkr_config import get_chunkr_config
 
-# from db import get_db_client
 from db import get_database_connection
 
 EMBEDDING_MODEL = "text-embedding-3-small"
@@ -18,7 +17,6 @@ TOKEN_LIMIT = 8191
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
-# supabase = get_db_client()
 encoder = tiktoken.get_encoding("cl100k_base")
 
 
@@ -193,17 +191,6 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
 
                 finally:
                     db.close()
-
-                # if using supabase
-                # supabase.table("files").insert(
-                #     {
-                #         "id": task.task_id,
-                #         "file_url": task.output.pdf_url,
-                #         "created_at": datetime.now().isoformat(),
-                #     }
-                # ).execute()
-
-                # supabase.table("embeddings").upsert(embeddings_data).execute()
 
         else:
             raise HTTPException(status_code=500, detail="Task failed")

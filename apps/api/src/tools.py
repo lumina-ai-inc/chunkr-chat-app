@@ -1,10 +1,7 @@
-# from db import get_db_client
 from db import get_database_connection
 from chunkr_ai import Chunkr
 import openai
 import os
-
-# supabase = get_db_client()
 
 
 async def get_chunk_information(chunk_id: str, file_id: str):
@@ -129,18 +126,6 @@ async def query_embeddings(
         formatted_results_data = []
     finally:
         db.close()
-
-    # if using supabase
-    # response = supabase.rpc(
-    #     "match_embeddings",
-    #     {
-    #         "query_embedding": query_embedding,
-    #         "match_threshold": threshold,
-    #         "match_count": limit,
-    #         "input_task_id": file_id,
-    #     },
-    # ).execute()
-    # results = response.data
 
     # Sort by similarity
     formatted_results_data.sort(key=lambda x: x["similarity"], reverse=True)
