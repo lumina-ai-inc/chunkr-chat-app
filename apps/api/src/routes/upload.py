@@ -9,14 +9,14 @@ from chunkr_ai import Chunkr
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 from chunkr_config import get_chunkr_config
-from db import get_db_client
+
+from db import get_database_connection
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 TOKEN_LIMIT = 8191
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
-supabase = get_db_client()
 encoder = tiktoken.get_encoding("cl100k_base")
 
 
@@ -85,7 +85,7 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
             # Extract text from all chunks and filter by token count
             valid_chunks = []
 
-            for chunk in task.output.chunks:
+            for i, chunk in enumerate(task.output.chunks):
                 chunk_text = chunk.embed.strip()
                 # Skip empty strings
                 if not chunk_text:
@@ -149,17 +149,51 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
                     }
                 )
 
-            # Batch upsert to Supabase
             if embeddings_data:
-                supabase.table("files").insert(
-                    {
-                        "id": task.task_id,
-                        "file_url": task.output.pdf_url,
-                        "created_at": datetime.now().isoformat(),
-                    }
-                ).execute()
+                db = get_database_connection()
+                if not db:
+                    raise HTTPException(
+                        status_code=500, detail="Failed to connect to database"
+                    )
 
-                supabase.table("embeddings").upsert(embeddings_data).execute()
+                try:
+                    # Insert file record
+                    db.execute_query(
+                        """
+                        INSERT INTO public.files (id, file_url, created_at) 
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (id) DO NOTHING
+                    """,
+                        (task.task_id, task.output.pdf_url, datetime.now().isoformat()),
+                        commit=True,
+                    )
+
+                    # Insert embeddings
+                    for embedding_data in embeddings_data:
+                        db.execute_query(
+                            """
+                            INSERT INTO public.embeddings (id, task_id, content, embedding, created_at)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (id) DO UPDATE SET
+                                content = EXCLUDED.content,
+                                embedding = EXCLUDED.embedding,
+                                created_at = EXCLUDED.created_at
+                        """,
+                            (
+                                embedding_data["id"],
+                                embedding_data["task_id"],
+                                embedding_data["content"],
+                                embedding_data["embedding"],
+                                embedding_data["created_at"],
+                            ),
+                            commit=True,
+                        )
+
+                finally:
+                    db.close()
+
+        else:
+            raise HTTPException(status_code=500, detail="Task failed")
 
         return {"task_id": task.task_id}
 

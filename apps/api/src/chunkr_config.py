@@ -81,9 +81,9 @@ def get_chunkr_config() -> Configuration:
             Picture=GenerationConfig(
                 crop_image=CroppingStrategy.ALL,
                 html=GenerationStrategy.LLM,
-                llm="Convert the images to tables and add an analysis of the values in the description",
+                llm=None,
                 markdown=GenerationStrategy.LLM,
-                embed_sources=["LLM", "Markdown"],
+                embed_sources=["Markdown"],
                 extended_context=True,
             ),
             Caption=GenerationConfig(
