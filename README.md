@@ -4,7 +4,7 @@ Language models speak confidently but often without evidence. Responses are gene
 
 The need for verified responses grew critical with the adoption of these models. Current approaches provide either generic document-level references or text snippets that lose important context. Users are left to manually search through sources, making the process tedious.
 
-How can we make these outputs more reliable ?
+How can we make these outputs more reliable?
 
 The solution is traceable citations that connect every piece of generated content directly to its source. Precise bounding boxes that highlight exact locations combined with semantic chunking for information dense responses makes this possible. Instead of treating documents as black boxes, we need methods that understand structure.
 
