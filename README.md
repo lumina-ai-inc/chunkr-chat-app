@@ -1,41 +1,69 @@
-# Evidence-Based LLM Applications with Granular Document Intelligence
+## Chunkr Chat App
 
-Language models speak confidently but often without evidence. Responses are generated based on their training data and the context provided. Even with extensive context, this doesn't solve the fundamental problem: users receive confident-sounding answers but have no way to understand where the information originated from.
+This repository is the source code for the guide that you can read [here](https://chunkr.ai/blog/building-better-pdf-experiences-with-chunkr). It will cover the basic setup of the application and cover how its structured.
 
-The need for verified responses grew critical with the adoption of these models. Current approaches provide either generic document-level references or text snippets that lose important context. Users are left to manually search through sources, making the process tedious.
-
-How can we make these outputs more reliable ?
-
-The solution is traceable citations that connect every piece of generated content directly to its source. Precise bounding boxes that highlight exact locations combined with semantic chunking for information dense responses makes this possible. Instead of treating documents as black boxes, we need methods that understand structure.
-
-Today we will introduce an end-to-end solution that allows for complete visibility into the nooks and crannies of the source document.
+## Architecture
 
 <div align="center">
-  <img src="./assets/bounding-boxes.png" alt="Bounding Boxes" width="600" >
+  <img src="./assets/architecture.png" alt="Chunkr Chat App" width="900" >
 </div>
+
+<br/>
+
+## Demo
+
 <div align="center">
-  <img src="./assets/chat-response.png" alt="Chat Response" width="1000" >
+  <img src="./assets/demo.gif" alt="Chunkr Chat App" width="900" >
 </div>
 
-## How it works?
+<br/>
 
-Here's a high level overview of what will be covered in this guide:
+## Setup
 
-&ndash; [Set up the database](#database-setup)
+Clone the repository to get started. We use a monorepo structure with [pnpm](https://pnpm.io/) as the package manager and [turbo](https://turborepo.com/) as the build tool.
 
-&ndash; [Document Processing using Chunkr](#document-processing-using-chunkr)
+```bash
+git clone https://github.com/lumina-ai-inc/chunkr-chat-app.git
+```
 
-&ndash; [Store and Generate Embeddings](#embedding-generation)
+Copy the `.env.example` in [apps/api](./apps/api/.env.example) file to `.env` and populate the correct values.
 
-&ndash; [Model Responses with Tool Calling](#response-generation)
+```bash
+cp apps/api/.env.example apps/api/.env
+```
 
-&ndash; [Putting It All Together](#putting-it-all-together)
+## Running with Docker (Recommended)
 
-## Database Setup
+Once you have a Docker engine running, you can run the following commmand from the root of the application:
 
-Let's kick things off by setting up our database with the required tables and the core matching functionality—used for semantic search. Head over to [Supabase](https://supabase.com/) to create a new project or spin up a [local instance](https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=brew).
+```bash
+cd chunkr-chat-app && docker compose up
+```
 
-Once we have a Supabase project setup or have it running locally, we can connect to it using the following code:
+This command will run three services: postgres-db (database), api (backend) and web (frontend).
+
+## Running Without Docker
+
+If you prefer not to use Docker, you can run the API and web applications separately. Each application has its own setup instructions:
+
+- **API**: Handles the requests, processing the documents and generating the responses. Find the complete implementation [here](./apps/api/) and the setup instructions in [README-API](./apps/api/README-API.md)
+- **Web**: Application to preview documents. Find the complete implementation of the frontend [here](./apps/web/) and the setup instructions in [README-WEB](./apps/web/README-WEB.md)
+
+## Environment Variables
+
+The application uses the following environment variables:
+
+- `OPENAI_API_KEY` - used to generate embeddings from chunks.
+- `OPENROUTER_API_KEY` - used to generate responses from the model.
+- `CHUNKR_API_KEY` - used to process documents.
+
+## Database
+
+Let's kick things off by setting up our database with the required tables and the core matching functionality—used for semantic search. We use a local database instance when using Docker and [psycopg2](https://pypi.org/project/psycopg2/) a Python adadpter for PostgreSQL databases.
+
+Alternatively, you can use a Supabase project. Head over to [Supabase](https://supabase.com/) to create a new project or spin up a [local instance](https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=brew) using their command line interface.
+
+We can connect to our database in the following way.
 
 ```python
 import psycopg2
@@ -52,9 +80,9 @@ connection = psycopg2.connect(
 cursor = connection.cursor()
 ```
 
-We will also create a Supabase [Python client](https://supabase.com/docs/reference/python/introduction) that we can use to interact with the database. We create two separate tables - one to store our document information and the other to store embeddings.
+> NOTE: If you're using Supabase, make sure to enable the pgvector extension before trying to make a field of type vector.
 
-> NOTE: Since we’re making use of the pgvector extension make sure to enable it before trying to make a field that is of type vector.
+We create two tables: one to store our document information and the other to store embeddings.
 
 ```python
 # Create file table
@@ -76,7 +104,7 @@ cursor.execute("""
 """)
 ```
 
-Finally, we index the embeddings table for faster retrieval and write a matching function to be used when querying the vectors.
+We also index the embeddings table for faster retrieval and write a matching function to be used when querying the vectors.
 
 ```python
 # Using HNSW as the algorithm
@@ -120,243 +148,6 @@ cursor.execute("""
 """)
 ```
 
-Complete code for this section can be found [here](./apps/api/src/db.py).
+Complete code for this section can be found in [db.py](./apps/api/src/db.py). The database is initialized when the application at [main.py](./apps/api/src/main.py) is run.
 
-## Document Processing using Chunkr
-
-Now that we have our database set up, we can start processing the documents. We will make use of the [Chunkr Python SDK](https://docs.chunkr.ai/sdk/installation) to generate RAG-ready chunks.
-
-### 1. Setting up a Config
-
-Chunkr provides a default Configuration object that works well out of the box—but it's also highly customizable. To get better control and alignment with our embedding model, we’ll tweak a few parameters.
-
-```python
-Configuration(
-chunk_processing=ChunkProcessing(
-    ignore_headers_and_footers=True,
-    target_length=1024,
-    tokenizer=Tokenizer.CL100K_BASE,
-))
-```
-
-In this example, we've increased the `target_length` to allow for larger chunks and a `CL100K_BASE` tokenizer which matches the one used by our embedding model.
-
-Read more about chunking and tokenization [here](https://docs.chunkr.ai/docs/features/chunking).
-
-### 2. Segment Processing
-
-Each chunk produced by Chunkr is composed of multiple segments—smaller units that can represent text, images, tables, or other elements. These segment configurations are fully customizable, allowing you to fine-tune how each content type is processed.
-
-For example, if you want to embed image content but also run a custom prompt on each image to extract insights, you can configure the `Picture` segment like this:
-
-```python
-Picture=GenerationConfig(
-        crop_image=CroppingStrategy.ALL,
-        html=GenerationStrategy.LLM,
-        llm="Convert the images to tables and add an analysis of the values in the description",
-        markdown=GenerationStrategy.LLM,
-        embed_sources=["LLM", "Markdown"],
-        extended_context=True
-)
-```
-
-You can dive deeper into segment-level customization [here](https://docs.chunkr.ai/docs/features/segment-processing#understanding-the-configuration). The complete configuration we use for this guide can be found at [chunkr_config.py](./apps/api/src/chunkr_config.py).
-
-### 3. Creating a Task
-
-Now we can create a task that will process any given document.
-
-```python
-from chunkr_ai import Chunkr
-from chunkr_ai.models import *
-
-chunkr = Chunkr()
-
-# Create a configuration
-chunkr_config = Configuration(
-chunk_processing=ChunkProcessing(
-     ignore_headers_and_footers=True,
-     target_length=1024,
-     tokenizer=Tokenizer.CL100K_BASE,
-),
-segment_processing=SegmentProcessing(
-     Picture=GenerationConfig(
-        crop_image=CroppingStrategy.ALL,
-        html=GenerationStrategy.LLM,
-        llm="Convert the images to tables and add an analysis of the values in the description",
-        markdown=GenerationStrategy.LLM,
-        embed_sources=["LLM", "Markdown"],
-        extended_context=True
-    )
-))
-
-# Upload and wait for complete processing with the custom configuration
-task = chunkr.upload("path/to/your/file", config=chunkr_config)
-
-# Or we can make use of create_task method to not wait for the task to complete using a default configuration
-task = chunkr.create_task("path/to/your/file")
-
-print(task.output.chunks) # Contains the processed chunks
-```
-
-## Embedding Generation
-
-The next step is to generate embeddings for the resultant chunks. We will use [OpenAI Embeddings](https://platform.openai.com/docs/api-reference/embeddings) to help us do this.
-
-```python
-import openai
-import tiktoken
-from supabase import create_client
-
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-
-valid_chunks = []
-
-for chunk in task.output.chunks:
-    chunk_text = chunk.embed.strip()
-
-    # Skip empty strings
-    if not chunk_text:
-        continue
-
-    token_count = len(tiktoken.get_encoding("cl100k_base").encode(chunk_text))
-
-    if token_count <= 8191:
-        valid_chunks.append({
-            'chunk': chunk,
-            'text': chunk_text,
-        })
-    else:
-        # Don't skip but strip the chunk to the token limit
-        chunk_text = chunk_text[:8191]
-        valid_chunks.append({
-            'chunk': chunk,
-            'text': chunk_text,
-        })
-
-    # Extract text from valid chunks for embeddings
-    chunk_texts = [chunk['text'] for chunk in valid_chunks]
-
-    # Batch generate embeddings using OpenAI
-    embedding_response = openai.embeddings.create(
-        model="text-embedding-3-small",
-        input=chunk_texts
-    )
-
-    # Prepare batch upsert data
-    embeddings_data = []
-
-    for i, chunk_data in enumerate(valid_chunks):
-        chunk = chunk_data['chunk']
-        embeddings_data.append({
-            "id": chunk.chunk_id,
-            "content": chunk_data['text'],
-            "embedding": embedding_response.data[i].embedding,
-            "task_id": task.task_id,
-            "created_at": datetime.now().isoformat()
-        })
-
-    # Batch upsert to Supabase <- This is where the Supabase client comes in handy
-    supabase.table("files").insert({
-        "id": task.task_id,
-        "file_url": task.output.pdf_url,
-        "created_at": datetime.now().isoformat()
-    }).execute()
-
-    supabase.table("embeddings").upsert(embeddings_data).execute()
-```
-
-We generate embeddings for all the chunks simultaneously while ensuring the token count stays within the model's limit. After this, we simply upsert the relevant data into our database.
-
-Find the complete implementation of the pipeline [here](./apps/api/src/routes/upload.py).
-
-## Response Generation
-
-The final step is implementing response generation. We use the [OpenAI Python SDK](https://github.com/openai/openai-python) configured with [OpenRouter](https://openrouter.ai/) for flexibility across different model providers. However, there's a fundamental challenge: the model has no inherent way to access the document content we've processed.
-
-This is where [function calling](https://platform.openai.com/docs/guides/function-calling) comes in. Using our semantic search function combined with the outputs from Chunkr, we have set up some basic functions at [tools.py](./apps/api/src/tools.py). These functions enable the model to pinpoint to the exact segment that it needs to reference. Although, the function can be easily edited to return a chunk-based response.
-
-However, challenges extend beyond basic retrieval. We need to make sure the model always responds in a predictable format. Also, we need a foolproof way to handle in-line citations that prevents unwanted information in the final response.
-
-Fortunately, we can handle all of this elegantly using [structured outputs](https://platform.openai.com/docs/guides/structured-outputs). Here is a basic schema that we use for this guide:
-
-```python
-{
-    "type": "json_schema",
-    "json_schema": {
-        "name": "cited_response",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "metadata": {
-                    "type": "object",
-                    "properties": {
-                        "citations": {"type": "array", "items": {"type": "string"}},
-                        "images": {"type": "array", "items": {"type": "string"}}
-                    },
-                    "required": ["citations", "images"],
-                    "additionalProperties": False
-                },
-                "response": {"type": "string"}
-            },
-            "additionalProperties": False,
-            "required": ["metadata", "response"]
-        }
-    }
-}
-```
-
-To take the user experience even further, all function calls and the final response are streamed to the frontend. Read more on how to handle [streaming responses](https://platform.openai.com/docs/guides/streaming-responses?api-mode=chat). We handle streaming in the [streaming-response-handler.ts](./apps/web/src/helpers/streaming-response-handler.ts) file.
-
-Find the complete implementation of the response generation flow [here](./apps/api/src/routes/generate.py).
-
-## Putting It All Together
-
-To bring everything together, we use a simple React application set up with [Next.js](https://nextjs.org/) and [react-pdf](https://github.com/wojtekmaj/react-pdf) to preview documents.
-
-A simple `GET` request returns the task results to the frontend where we extract bounding box coordinates for each segment. We then associate them with their `segment_id` and page details.
-
-Here is a snippet of how it looks:
-
-```javascript
-const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/task/${taskId}`,{ method: 'GET' })
-
-const data = await res.json()
-const task: TaskResponse = data.task
-const chunks: Chunk[] = task.output?.chunks || []
-
-const bboxes = useMemo(() => {
-    const allBboxes: Array<{
-      bbox: BoundingBox & { page_number: number }
-      id: string
-      page_width: number
-      page_height: number
-    }> = []
-    chunks.forEach((chunk) => {
-      chunk.segments.forEach((segment) => {
-        allBboxes.push({
-          bbox: {
-            ...segment.bbox,
-            page_number: segment.page_number,
-          },
-          id: segment.segment_id,
-          page_width: segment.page_width,
-          page_height: segment.page_height,
-        })
-      })
-    })
-    return allBboxes
-  }, [chunks])
-```
-
-Rendering for bounding boxes is handled by a lightweight component called [bounding-box-display.tsx](./apps/web/src/components/chat/bounding-box-display.tsx). The component could also be configured to render chunk-based boxes instead of segment-based ones.
-
-Find the complete implementation of the frontend [here](./apps/web/).
-
-## Conclusion
-
-You now have a complete evidence-based LLM application! The system provides precise citations with bounding boxes and enhances model responses with relevant information-text, images, and tables. This should serve as a solid starting point to build on top of.
-
-Check out the demo video to see the application in action.
-
-Find the complete source code for this guide on GitHub [here](https://github.com/lumina-ai-inc/chunkr-chat-app).
+If using Supabase, using their [Python client](https://supabase.com/docs/reference/python/introduction) is recommended. We have commented out the code that uses the client in [upload.py](./apps/api/src/routes/upload.py) and [tools.py](./apps/api/src/tools.py).
