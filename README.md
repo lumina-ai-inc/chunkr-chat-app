@@ -34,7 +34,7 @@ cp apps/api/.env.example apps/api/.env
 
 ## Running with Docker (Recommended)
 
-Once you have a Docker engine running, you can run the following commmand from the root of the application:
+Once you have a Docker engine running, you can run the following command from the root of the application:
 
 ```bash
 cd chunkr-chat-app && docker compose up
