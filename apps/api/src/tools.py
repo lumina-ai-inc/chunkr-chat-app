@@ -73,7 +73,11 @@ async def get_chunk_information(chunk_id: str, file_id: str, api_keys: dict = No
 
 
 async def query_embeddings(
-    query: str, file_id: str, threshold: float = 0.1, limit: int = 3, api_keys: dict = None
+    query: str,
+    file_id: str,
+    threshold: float = 0.1,
+    limit: int = 3,
+    api_keys: dict = None,
 ):
     """
     Search for similar chunks in the database using semantic similarity.

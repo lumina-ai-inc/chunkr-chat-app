@@ -201,7 +201,7 @@ async def chat_route(request: Request):
         """
         # Get API keys from headers
         api_keys = get_api_keys_from_headers(request)
-        
+
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=api_keys["openrouter"],

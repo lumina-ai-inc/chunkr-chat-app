@@ -51,7 +51,7 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
     try:
         # Get API keys from headers
         api_keys = get_api_keys_from_headers(request)
-        
+
         # Try to get URL from JSON body
         url = None
         try:
@@ -227,7 +227,7 @@ async def get_task(task_id: str, request: Request):
     try:
         # Get API keys from headers
         api_keys = get_api_keys_from_headers(request)
-        
+
         chunkr = Chunkr(api_key=api_keys["chunkr"])
 
         task = await chunkr.get_task(task_id, include_chunks=True)
