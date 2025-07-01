@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 import uuid
 
 from fastapi import APIRouter, Request, HTTPException

@@ -1,5 +1,4 @@
 import base64
-import os
 import tiktoken
 from datetime import datetime
 from typing import Optional
