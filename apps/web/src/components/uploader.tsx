@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, X } from 'lucide-react'
+import { getApiHeaders, validateApiKeys } from '@/helpers/api-keys'
 
 // URL schema validation
 const urlSchema = z.string().url('Please enter a valid url')
@@ -72,10 +73,19 @@ const Upload = () => {
     if (mode === 'file' && !file) return
     if (mode === 'url' && (!url || !validateUrl(url))) return
 
+    const { isValid, missingKeys } = validateApiKeys()
+    if (!isValid) {
+      toast.error(
+        `Missing API keys: ${missingKeys.join(', ')}. Please configure them first.`
+      )
+      return
+    }
+
     setUploading(true)
 
     try {
       let fetchPromise: Promise<Response>
+      const apiHeaders = getApiHeaders()
 
       if (mode === 'file' && file) {
         const formData = new FormData()
@@ -83,6 +93,9 @@ const Upload = () => {
 
         fetchPromise = fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
           method: 'POST',
+          headers: {
+            ...apiHeaders,
+          },
           body: formData,
         })
       } else {
@@ -90,6 +103,7 @@ const Upload = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...apiHeaders,
           },
           body: JSON.stringify({ url }),
         })

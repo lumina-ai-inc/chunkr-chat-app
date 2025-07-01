@@ -26,12 +26,6 @@ Clone the repository to get started. We use a monorepo structure with [pnpm](htt
 git clone https://github.com/lumina-ai-inc/chunkr-chat-app.git
 ```
 
-Copy the `.env.example` in [apps/api](./apps/api/.env.example) file to `.env` and populate the correct values.
-
-```bash
-cp apps/api/.env.example apps/api/.env
-```
-
 ## Running with Docker (Recommended)
 
 Once you have a Docker engine running, you can run the following command from the root of the application:
@@ -40,7 +34,7 @@ Once you have a Docker engine running, you can run the following command from th
 cd chunkr-chat-app && docker compose up
 ```
 
-This command will run three services: postgres-db (database), api (backend) and web (frontend).
+This command will run three services: postgres-db (database), api (backend) and web (frontend). The web application will be available at [http://localhost:3000](http://localhost:3000).
 
 ## Running Without Docker
 

@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import Upload from '@/components/uploader'
+import ApiKeyConfig from '@/components/api-key-config'
 import Link from 'next/link'
 
 export default function Home() {
@@ -54,7 +55,14 @@ export default function Home() {
         </Button>
       </div>
 
-      <Upload />
+      <div className="space-y-4">
+        <div className="text-sm text-muted-foreground">
+          Configure your API keys below to get started with document processing
+          and chat.
+        </div>
+        <ApiKeyConfig />
+        <Upload />
+      </div>
     </main>
   )
 }

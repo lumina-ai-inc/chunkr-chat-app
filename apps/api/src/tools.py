@@ -4,7 +4,7 @@ import openai
 import os
 
 
-async def get_chunk_information(chunk_id: str, file_id: str):
+async def get_chunk_information(chunk_id: str, file_id: str, api_keys: dict = None):
     """
     Retrieve detailed information about a specific chunk from a file.
 
@@ -14,6 +14,7 @@ async def get_chunk_information(chunk_id: str, file_id: str):
     Args:
         chunk_id (str): The unique identifier of the chunk to retrieve
         file_id (str): The unique identifier of the file containing the chunk
+        api_keys (dict, optional): Dictionary containing API keys from headers
 
     Returns:
         dict: Dictionary with 'response' key containing either:
@@ -31,7 +32,9 @@ async def get_chunk_information(chunk_id: str, file_id: str):
             Error:
                 error (str): Error message "Chunk not found"
     """
-    chunkr = Chunkr(api_key=os.getenv("CHUNKR_API_KEY"))
+    # Use API key from headers if available, otherwise fall back to environment variable
+    chunkr_api_key = api_keys.get("chunkr") if api_keys else os.getenv("CHUNKR_API_KEY")
+    chunkr = Chunkr(api_key=chunkr_api_key)
 
     task = await chunkr.get_task(file_id, base64_urls=True)
     chunks = task.output.chunks
@@ -70,7 +73,7 @@ async def get_chunk_information(chunk_id: str, file_id: str):
 
 
 async def query_embeddings(
-    query: str, file_id: str, threshold: float = 0.1, limit: int = 3
+    query: str, file_id: str, threshold: float = 0.1, limit: int = 3, api_keys: dict = None
 ):
     """
     Search for similar chunks in the database using semantic similarity.
@@ -84,6 +87,7 @@ async def query_embeddings(
         threshold (float, optional): Minimum similarity threshold for results.
                                    Defaults to 0.1.
         limit (int, optional): Maximum number of results to return. Defaults to 10.
+        api_keys (dict, optional): Dictionary containing API keys from headers
 
     Returns:
         dict: Dictionary with 'results' key containing a list of matching chunks, every chunk has:
@@ -92,7 +96,9 @@ async def query_embeddings(
             similarity (float): Similarity score between query and chunk
     """
 
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    # Use API key from headers if available, otherwise fall back to environment variable
+    openai_api_key = api_keys.get("openai") if api_keys else os.getenv("OPENAI_API_KEY")
+    openai.api_key = openai_api_key
 
     embedding_response = openai.embeddings.create(
         model="text-embedding-3-small", input=[query]
@@ -137,7 +143,7 @@ async def query_embeddings(
         chunk_id = row["id"]
 
         # Get the chunk information
-        chunk_info = await get_chunk_information(chunk_id, file_id)
+        chunk_info = await get_chunk_information(chunk_id, file_id, api_keys)
         chunk_segments = chunk_info["response"]["segments"]
 
         formatted_results.append(
