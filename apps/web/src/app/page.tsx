@@ -58,12 +58,7 @@ export default function Home() {
           </Link>
         </Button>
       </div>
-
-      <div className="space-y-4">
-        <div className="text-sm text-muted-foreground">
-          Configure your API keys below to get started with document processing
-          and chat.
-        </div>
+      <div className="space-y-4 w-full">
         <ApiKeyConfig />
         <Upload />
       </div>

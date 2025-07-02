@@ -73,7 +73,7 @@ def get_chunkr_config() -> Configuration:
             Table=GenerationConfig(
                 crop_image=CroppingStrategy.ALL,
                 html=GenerationStrategy.LLM,
-                llm="Summarize the key trends in this table including any context from legends or surrounding text",
+                llm="Summarize the key information in this table including any context from legends or surrounding text",
                 markdown=GenerationStrategy.LLM,
                 embed_sources=["LLM", "Markdown"],
                 extended_context=True,
@@ -81,7 +81,7 @@ def get_chunkr_config() -> Configuration:
             Picture=GenerationConfig(
                 crop_image=CroppingStrategy.ALL,
                 html=GenerationStrategy.LLM,
-                llm=None,
+                llm="Analyze the attached floor plan and return a structured summary including: Project info (title/block, sheet number, scale, total area), Rooms (name, sq ft), Exterior doors (ID, size, type, location, sill height), Windows (ID, size, location, sill height), Major fixtures/appliances (sinks, toilets, appliances)",
                 markdown=GenerationStrategy.LLM,
                 embed_sources=["Markdown"],
                 extended_context=True,

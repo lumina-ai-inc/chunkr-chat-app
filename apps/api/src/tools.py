@@ -36,7 +36,7 @@ async def get_chunk_information(chunk_id: str, file_id: str, api_keys: dict = No
     chunkr_api_key = api_keys.get("chunkr") if api_keys else os.getenv("CHUNKR_API_KEY")
     chunkr = Chunkr(api_key=chunkr_api_key)
 
-    task = await chunkr.get_task(file_id, base64_urls=True)
+    task = await chunkr.get_task(file_id, base64_urls=False)
     chunks = task.output.chunks
 
     for chunk in chunks:

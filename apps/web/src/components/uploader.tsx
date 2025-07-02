@@ -5,14 +5,11 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Switch } from '@/components/ui/switch'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, Upload as UploadIcon, X } from 'lucide-react'
 import { getApiHeaders, validateApiKeys } from '@/helpers/api-keys'
 
 // URL schema validation
 const urlSchema = z.string().url('Please enter a valid url')
-
-type UploadMode = 'file' | 'url'
 
 // Supported file types
 const SUPPORTED_FILE_TYPES = [
@@ -32,25 +29,52 @@ const SUPPORTED_EXTENSIONS =
   '.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.jpeg,.jpg,.png'
 
 const Upload = () => {
-  const [mode, setMode] = useState<UploadMode>('file')
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState('')
   const [urlError, setUrlError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (selectedFile: File) => {
+    if (!SUPPORTED_FILE_TYPES.includes(selectedFile.type)) {
+      toast.error('Please select a supported file type')
+      return
+    }
+    setFile(selectedFile)
+    setUrl('') // Clear URL when file is selected
+    setUrlError(null)
+  }
+
+  const handleInputFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      const selectedFile = e.target.files[0]
-      if (!SUPPORTED_FILE_TYPES.includes(selectedFile.type)) {
-        toast.error('Please select a supported file type')
-        return
-      }
-      setFile(selectedFile)
+      handleFileChange(e.target.files[0])
     }
   }
 
   const clearFileSelection = () => {
     setFile(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+
+    if (uploading) return
+
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
+      handleFileChange(droppedFiles[0])
+    }
   }
 
   const validateUrl = (value: string) => {
@@ -71,24 +95,16 @@ const Upload = () => {
     setUrl(value)
     if (value) {
       validateUrl(value)
+      setFile(null) // Clear file when URL is entered
     } else {
       setUrlError(null)
     }
   }
 
-  const handleModeChange = (newMode: UploadMode) => {
-    setMode(newMode)
-    // Clear previous selections when switching modes
-    setFile(null)
-    setUrl('')
-    setUrlError(null)
-  }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (mode === 'file' && !file) return
-    if (mode === 'url' && (!url || !validateUrl(url))) return
+    if (!file && (!url || !validateUrl(url))) return
 
     const { isValid, missingKeys } = validateApiKeys()
     if (!isValid) {
@@ -104,7 +120,7 @@ const Upload = () => {
       let fetchPromise: Promise<Response>
       const apiHeaders = getApiHeaders()
 
-      if (mode === 'file' && file) {
+      if (file) {
         const formData = new FormData()
         formData.append('file', file)
 
@@ -150,10 +166,9 @@ const Upload = () => {
               </div>
             )
           },
-          error: (err) => {
-            console.error(`Error uploading ${mode}:`, err)
+          error: () => {
             setUploading(false)
-            return `Failed to upload ${mode}`
+            return 'Failed to upload'
           },
         }
       )
@@ -164,84 +179,105 @@ const Upload = () => {
     }
   }
 
-  const isFormValid = mode === 'file' ? file : url && !urlError
+  const isFormValid = file || (url && !urlError)
 
   return (
-    <div className="space-y-4">
-      {/* Mode Toggle */}
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={mode === 'url'}
-          onCheckedChange={(checked) =>
-            handleModeChange(checked ? 'url' : 'file')
-          }
-        />
-      </div>
-
-      {/* Upload Form */}
-      <form
-        id="upload-form"
-        onSubmit={handleSubmit}
-        className="flex flex-row items-end h-fit gap-2"
-      >
-        <div>
-          {mode === 'file' ? (
-            // File Upload Section
-            file ? (
-              <div className="p-4 border rounded-lg">
-                <div className="flex justify-between items-center gap-2">
-                  <p className="text-sm text-gray-600 truncate">
-                    {file.name.slice(0, 20)}...
+    <div className="space-y-6">
+      <form id="upload-form" onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          {file ? (
+            <div className="p-4 border rounded-lg bg-muted/50">
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <UploadIcon className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm text-foreground truncate">
+                    {file.name}
                   </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={clearFileSelection}
-                    size="icon"
-                    className="shadow-none"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearFileSelection}
+                  size="icon"
+                  className="shadow-none h-6 w-6"
+                  disabled={uploading}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                dragOver
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              } ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() =>
+                !uploading && document.getElementById('file-input')?.click()
+              }
+            >
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleInputFileChange}
+                accept={SUPPORTED_EXTENSIONS}
+                id="file-input"
+                disabled={uploading}
+              />
+              <div className="space-y-2">
+                <UploadIcon className="w-8 h-8 mx-auto text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Drop files here or click to browse
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Supports PDF, DOCX, DOC, PPTX, PPT, XLSX, XLS, JPEG, JPG,
+                    PNG
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="flex justify-center">
-                <label className="inline-block">
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept={SUPPORTED_EXTENSIONS}
-                    id="file-input"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="cursor-pointer font-normal"
-                    onClick={() =>
-                      document.getElementById('file-input')?.click()
-                    }
-                  >
-                    Browse Files
-                  </Button>
-                </label>
-              </div>
-            )
-          ) : (
-            <Input
-              type="url"
-              value={url}
-              onChange={handleUrlChange}
-              placeholder="Enter a url"
-              className={urlError ? 'border-destructive' : ''}
-            />
+            </div>
           )}
         </div>
 
-        <Button type="submit" disabled={uploading || !isFormValid} size={'sm'}>
+        <div className="relative">
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-foreground font-medium">
+              OR
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                type="url"
+                value={url}
+                onChange={handleUrlChange}
+                placeholder="Enter a URL"
+                className={urlError ? 'border-destructive' : ''}
+                disabled={uploading}
+              />
+              {urlError && (
+                <p className="text-xs text-destructive mt-1">{urlError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={uploading || !isFormValid}
+          className="w-full"
+        >
           {uploading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
               Processing
             </>
           ) : (

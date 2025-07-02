@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Eye, EyeOff, Settings } from 'lucide-react'
 import Link from 'next/link'
@@ -24,7 +32,7 @@ export default function ApiKeyConfig() {
     openrouter: false,
     chunkr: false,
   })
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const storedKeys = {
@@ -45,6 +53,7 @@ export default function ApiKeyConfig() {
     localStorage.setItem('chunkr_api_key', apiKeys.chunkr)
 
     toast.success('Configuration saved successfully!')
+    setIsOpen(false)
   }
 
   const toggleShowKey = (provider: keyof ApiKeys) => {
@@ -54,132 +63,122 @@ export default function ApiKeyConfig() {
   const hasAllKeys = apiKeys.openai && apiKeys.openrouter && apiKeys.chunkr
 
   return (
-    <div className="space-y-4">
-      <Button
-        variant="ghost"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="justify-start"
-      >
-        <Settings className="w-4 h-4 mr-2" />
-        API Configuration
-        {hasAllKeys && <span className="ml-auto text-green-600">✓</span>}
-      </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="justify-start">
+          <Settings className="w-4 h-4 mr-2" />
+          API Configuration
+          {hasAllKeys && <span className="ml-auto text-green-600">✓</span>}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>API Configuration</DialogTitle>
+          <DialogDescription>
+            Keys are stored locally in your browser.
+          </DialogDescription>
+        </DialogHeader>
 
-      {isExpanded && (
-        <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-          <p className="text-sm text-muted-foreground">
-            Configure your API keys to use the chat functionality. Keys are
-            stored locally in your browser.
-          </p>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Button variant="link" asChild className="px-0">
-                <Link
-                  href="https://docs.chunkr.ai/docs/get-started/quickstart#step-1-sign-up-and-create-an-api-key"
-                  target="_blank"
-                >
-                  Chunkr ↗
-                </Link>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Button variant="link" asChild className="px-0">
+              <Link
+                href="https://docs.chunkr.ai/docs/get-started/quickstart#step-1-sign-up-and-create-an-api-key"
+                target="_blank"
+              >
+                Chunkr ↗
+              </Link>
+            </Button>
+            <div className="flex gap-2 items-end">
+              <Input
+                id="chunkr-key"
+                type={showKeys.chunkr ? 'text' : 'password'}
+                value={apiKeys.chunkr}
+                onChange={(e) => handleKeyChange('chunkr', e.target.value)}
+                placeholder="chunkr_..."
+                className="flex-1"
+                autoFocus={false}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleShowKey('chunkr')}
+              >
+                {showKeys.chunkr ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
               </Button>
-              <div className="flex gap-2 items-end">
-                <Input
-                  id="chunkr-key"
-                  type={showKeys.chunkr ? 'text' : 'password'}
-                  value={apiKeys.chunkr}
-                  onChange={(e) => handleKeyChange('chunkr', e.target.value)}
-                  placeholder="chunkr_..."
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleShowKey('chunkr')}
-                >
-                  {showKeys.chunkr ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Button variant="link" asChild className="px-0">
-                <Link
-                  href="https://platform.openai.com/api-keys"
-                  target="_blank"
-                >
-                  OpenAI ↗
-                </Link>
-              </Button>
-              <div className="flex gap-2 items-end">
-                <Input
-                  id="openai-key"
-                  type={showKeys.openai ? 'text' : 'password'}
-                  value={apiKeys.openai}
-                  onChange={(e) => handleKeyChange('openai', e.target.value)}
-                  placeholder="sk-..."
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleShowKey('openai')}
-                >
-                  {showKeys.openai ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Button variant="link" asChild className="px-0">
-                <Link
-                  href="https://openrouter.ai/settings/keys"
-                  target="_blank"
-                >
-                  OpenRouter ↗
-                </Link>
-              </Button>
-              <div className="flex gap-2 items-end">
-                <Input
-                  id="openrouter-key"
-                  type={showKeys.openrouter ? 'text' : 'password'}
-                  value={apiKeys.openrouter}
-                  onChange={(e) =>
-                    handleKeyChange('openrouter', e.target.value)
-                  }
-                  placeholder="sk-or-..."
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleShowKey('openrouter')}
-                >
-                  {showKeys.openrouter ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
             </div>
           </div>
 
-          <Button onClick={handleSave} className="w-full">
-            Save API Keys
-          </Button>
+          <div className="space-y-2">
+            <Button variant="link" asChild className="px-0">
+              <Link href="https://platform.openai.com/api-keys" target="_blank">
+                OpenAI ↗
+              </Link>
+            </Button>
+            <div className="flex gap-2 items-end">
+              <Input
+                id="openai-key"
+                type={showKeys.openai ? 'text' : 'password'}
+                value={apiKeys.openai}
+                onChange={(e) => handleKeyChange('openai', e.target.value)}
+                placeholder="sk-..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleShowKey('openai')}
+              >
+                {showKeys.openai ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Button variant="link" asChild className="px-0">
+              <Link href="https://openrouter.ai/settings/keys" target="_blank">
+                OpenRouter ↗
+              </Link>
+            </Button>
+            <div className="flex gap-2 items-end">
+              <Input
+                id="openrouter-key"
+                type={showKeys.openrouter ? 'text' : 'password'}
+                value={apiKeys.openrouter}
+                onChange={(e) => handleKeyChange('openrouter', e.target.value)}
+                placeholder="sk-or-..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => toggleShowKey('openrouter')}
+              >
+                {showKeys.openrouter ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-      )}
-    </div>
+
+        <Button onClick={handleSave} className="w-full">
+          Save
+        </Button>
+      </DialogContent>
+    </Dialog>
   )
 }
