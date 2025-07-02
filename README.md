@@ -34,26 +34,24 @@ Once you have a Docker engine running, you can run the following command from th
 cd chunkr-chat-app && docker compose up
 ```
 
-This command will run three services: postgres-db (database), api (backend) and web (frontend). The web application will be available at [http://localhost:3000](http://localhost:3000).
+This command will run three services: postgres-db (database), api (backend) and web (frontend). 
+
+The services will be available at the following ports:
+- **Web application (frontend):** [http://localhost:3000](http://localhost:3000)
+- **API (backend):** [http://localhost:8000](http://localhost:8000)
+- **Postgres database:** localhost:54321 
 
 ## Running Without Docker
 
 If you prefer not to use Docker, you can run the API and web applications separately. Each application has its own setup instructions:
 
-- **API**: Handles the requests, processing the documents and generating the responses. Find the complete implementation [here](./apps/api/) and the setup instructions in [README-API](./apps/api/README-API.md)
-- **Web**: Application to preview documents. Find the complete implementation of the frontend [here](./apps/web/) and the setup instructions in [README-WEB](./apps/web/README-WEB.md)
+- **API**: Handles the requests, processing the documents and generating the responses. Find the complete implementation [here](./apps/api/) and the setup instructions in [README](./apps/api/README.md)
+- **Web**: Application to preview documents. Find the complete implementation of the frontend [here](./apps/web/) and the setup instructions in [README](./apps/web/README.md)
 
-## Environment Variables
-
-The application uses the following environment variables:
-
-- `OPENAI_API_KEY` - used to generate embeddings from chunks.
-- `OPENROUTER_API_KEY` - used to generate responses from the model.
-- `CHUNKR_API_KEY` - used to process documents.
 
 ## Database
 
-Let's kick things off by setting up our database with the required tables and the core matching functionality—used for semantic search. We use a local database instance when using Docker and [psycopg2](https://pypi.org/project/psycopg2/) a Python adadpter for PostgreSQL databases.
+Let's kick things off by setting up our database with the required tables and the core matching functionality—used for semantic search. We use a local database instance when using Docker and [psycopg2](https://pypi.org/project/psycopg2/) a Python adapter for PostgreSQL databases.
 
 Alternatively, you can use a Supabase project. Head over to [Supabase](https://supabase.com/) to create a new project or spin up a [local instance](https://supabase.com/docs/guides/local-development?queryGroups=package-manager&package-manager=brew) using their command line interface.
 

@@ -2,25 +2,13 @@
 
 The setup for the backend in simple. We use [uv](https://docs.astral.sh/uv/) for dependency management. Set it up if you haven't already. Follow the instructions [here](https://docs.astral.sh/uv/getting-started/installation/) to install uv.
 
-### 1. Make a virtual environment
-
-```bash
-uv venv .venv && source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
-uv sync
-```
-
-### 3. Set up environment variables
+### 1. Set up environment variables
 
 ```bash
 cp .env.example .env
 ```
 
-The `.env` already has some default environment variables set up. You can change them to your liking. Follow the [Chunkr guide](https://docs.chunkr.ai/docs/get-started/quickstart#step-1-sign-up-and-create-an-api-key) to create an API key. For [OpenRouter](https://openrouter.ai/), you can get an API key from their [website](https://openrouter.ai/settings/keys). For OpenAI head [here](https://platform.openai.com/api-keys).
+<!-- The `.env` already has some default environment variables set up. You can change them to your liking. Follow the [Chunkr guide](https://docs.chunkr.ai/docs/get-started/quickstart#step-1-sign-up-and-create-an-api-key) to create an API key. For [OpenRouter](https://openrouter.ai/), you can get an API key from their [website](https://openrouter.ai/settings/keys). For OpenAI head [here](https://platform.openai.com/api-keys). -->
 
 ### 4. Set up Database
 
@@ -70,7 +58,7 @@ The application will run on port `8000` by default. Send a `GET` request to `/he
 
 [main.py](./src/main.py) - The entry point for the application.
 
-### Uploading Documents
+<!-- ### Uploading Documents
 
 The `POST /upload` route is used to process documents through [Chunkr](https://docs.chunkr.ai/docs/get-started/quickstart#step-1%3A-sign-up-and-create-an-api-key) and generate embeddings using [OpenAI Embeddings](https://platform.openai.com/docs/guides/embeddings/embedding-models).
 
@@ -175,4 +163,4 @@ Here is a basic schema that we use for [structured outputs](https://platform.ope
 }
 ```
 
-Find the complete implementation of the response generation flow [here](./apps/api/src/routes/generate.py).
+Find the complete implementation of the response generation flow [here](./apps/api/src/routes/generate.py). -->
