@@ -14,7 +14,8 @@ export default function Home() {
         <div className="flex flex-row justify-between">
           <h1 className="text-lg font-bold flex flex-row gap-2 items-center">
             <ChatAvatar />
-            Chunkr Chat</h1>
+            Chunkr Chat
+          </h1>
           <div className="flex flex-row gap-2">
             <Button variant="outline" size="icon" asChild>
               <Link href="https://github.com/lumina-ai-inc/chunkr-chat-app">
