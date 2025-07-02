@@ -14,6 +14,23 @@ const urlSchema = z.string().url('Please enter a valid url')
 
 type UploadMode = 'file' | 'url'
 
+// Supported file types
+const SUPPORTED_FILE_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+  'application/vnd.ms-powerpoint', // .ppt
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // .xls
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+]
+
+const SUPPORTED_EXTENSIONS =
+  '.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.jpeg,.jpg,.png'
+
 const Upload = () => {
   const [mode, setMode] = useState<UploadMode>('file')
   const [file, setFile] = useState<File | null>(null)
@@ -24,8 +41,8 @@ const Upload = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       const selectedFile = e.target.files[0]
-      if (selectedFile.type !== 'application/pdf') {
-        toast.error('Please select a PDF file')
+      if (!SUPPORTED_FILE_TYPES.includes(selectedFile.type)) {
+        toast.error('Please select a supported file type')
         return
       }
       setFile(selectedFile)
@@ -194,7 +211,7 @@ const Upload = () => {
                     type="file"
                     className="hidden"
                     onChange={handleFileChange}
-                    accept=".pdf,application/pdf"
+                    accept={SUPPORTED_EXTENSIONS}
                     id="file-input"
                   />
                   <Button
