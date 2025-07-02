@@ -53,12 +53,6 @@ export default function ApiKeyConfig() {
 
   const hasAllKeys = apiKeys.openai && apiKeys.openrouter && apiKeys.chunkr
 
-  useEffect(() => {
-    if (!hasAllKeys && !isExpanded) {
-      setIsExpanded(true)
-    }
-  }, [hasAllKeys, isExpanded])
-
   return (
     <div className="space-y-4">
       <Button
