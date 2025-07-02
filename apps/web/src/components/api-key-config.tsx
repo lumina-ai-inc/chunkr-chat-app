@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Eye, EyeOff, Settings } from 'lucide-react'
+import Link from 'next/link'
 
 interface ApiKeys {
   openai: string
@@ -74,7 +75,14 @@ export default function ApiKeyConfig() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="chunkr-key">Chunkr API Key</Label>
+              <Button variant="link" asChild className="px-0">
+                <Link
+                  href="https://docs.chunkr.ai/docs/get-started/quickstart#step-1-sign-up-and-create-an-api-key"
+                  target="_blank"
+                >
+                  Chunkr ↗
+                </Link>
+              </Button>
               <div className="flex gap-2 items-end">
                 <Input
                   id="chunkr-key"
@@ -100,7 +108,14 @@ export default function ApiKeyConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="openai-key">OpenAI API Key</Label>
+              <Button variant="link" asChild className="px-0">
+                <Link
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                >
+                  OpenAI ↗
+                </Link>
+              </Button>
               <div className="flex gap-2 items-end">
                 <Input
                   id="openai-key"
@@ -126,7 +141,14 @@ export default function ApiKeyConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="openrouter-key">OpenRouter API Key</Label>
+              <Button variant="link" asChild className="px-0">
+                <Link
+                  href="https://openrouter.ai/settings/keys"
+                  target="_blank"
+                >
+                  OpenRouter ↗
+                </Link>
+              </Button>
               <div className="flex gap-2 items-end">
                 <Input
                   id="openrouter-key"
