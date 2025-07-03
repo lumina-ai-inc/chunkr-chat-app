@@ -95,7 +95,7 @@ export default function ApiKeyConfig() {
                 type={showKeys.chunkr ? 'text' : 'password'}
                 value={apiKeys.chunkr}
                 onChange={(e) => handleKeyChange('chunkr', e.target.value)}
-                placeholder="chunkr_..."
+                placeholder="ch_..."
                 className="flex-1"
                 autoFocus={false}
               />

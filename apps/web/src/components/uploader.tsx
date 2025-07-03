@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,11 +30,28 @@ const SUPPORTED_EXTENSIONS =
   '.pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.jpeg,.jpg,.png'
 
 const Upload = () => {
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [url, setUrl] = useState('')
   const [urlError, setUrlError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+
+  const validateUrl = (value: string, updateState = false) => {
+    try {
+      urlSchema.parse(value)
+      if (updateState) setUrlError(null)
+      return true
+    } catch (error) {
+      if (updateState && error instanceof z.ZodError) {
+        setUrlError(error.errors[0].message)
+      }
+      return false
+    }
+  }
+
+  // Check if we have a valid URL
+  const hasValidUrl = Boolean(url && !urlError && validateUrl(url))
 
   const handleFileChange = (selectedFile: File) => {
     if (!SUPPORTED_FILE_TYPES.includes(selectedFile.type)) {
@@ -57,6 +75,7 @@ const Upload = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+    if (hasValidUrl || uploading) return
     setDragOver(true)
   }
 
@@ -69,7 +88,7 @@ const Upload = () => {
     e.preventDefault()
     setDragOver(false)
 
-    if (uploading) return
+    if (uploading || hasValidUrl) return
 
     const droppedFiles = Array.from(e.dataTransfer.files)
     if (droppedFiles.length > 0) {
@@ -77,24 +96,11 @@ const Upload = () => {
     }
   }
 
-  const validateUrl = (value: string) => {
-    try {
-      urlSchema.parse(value)
-      setUrlError(null)
-      return true
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        setUrlError(error.errors[0].message)
-      }
-      return false
-    }
-  }
-
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setUrl(value)
     if (value) {
-      validateUrl(value)
+      validateUrl(value, true)
       setFile(null) // Clear file when URL is entered
     } else {
       setUrlError(null)
@@ -115,6 +121,7 @@ const Upload = () => {
     }
 
     setUploading(true)
+    toast.loading('Processing through Chunkr...')
 
     try {
       let fetchPromise: Promise<Response>
@@ -142,38 +149,26 @@ const Upload = () => {
         })
       }
 
-      toast.promise(
-        fetchPromise.then((response) => {
-          if (!response.ok) {
-            throw new Error('Upload failed')
-          }
+      const response = await fetchPromise
 
-          // Clear form data on success
-          setFile(null)
-          setUrl('')
-          return response.json()
-        }),
-        {
-          loading: 'Processing through Chunkr...',
-          success: (data) => {
-            setUploading(false)
-            return (
-              <div className="gap-2">
-                <p>File processed successfully!</p>
-                <a href={`/chat/${data.task_id}`} className="underline">
-                  Click here
-                </a>
-              </div>
-            )
-          },
-          error: () => {
-            setUploading(false)
-            return 'Failed to upload'
-          },
-        }
-      )
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await response.json()
+
+      // Clear form data on success
+      setFile(null)
+      setUrl('')
+      setUploading(false)
+
+      // Dismiss loading toast and show success, then navigate
+      toast.dismiss()
+      toast.success('File processed successfully!')
+      router.push(`/chat/${data.task_id}`)
     } catch (error) {
       console.error('Error in upload process:', error)
+      toast.dismiss()
       toast.error('Failed to upload')
       setUploading(false)
     }
@@ -209,15 +204,17 @@ const Upload = () => {
           ) : (
             <div
               className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragOver
+                dragOver && !hasValidUrl
                   ? 'border-primary bg-primary/5'
                   : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              } ${uploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
+              } ${uploading || hasValidUrl ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() =>
-                !uploading && document.getElementById('file-input')?.click()
+                !uploading &&
+                !hasValidUrl &&
+                document.getElementById('file-input')?.click()
               }
             >
               <input
@@ -226,7 +223,7 @@ const Upload = () => {
                 onChange={handleInputFileChange}
                 accept={SUPPORTED_EXTENSIONS}
                 id="file-input"
-                disabled={uploading}
+                disabled={uploading || hasValidUrl}
               />
               <div className="space-y-2">
                 <UploadIcon className="w-8 h-8 mx-auto text-muted-foreground" />
@@ -261,7 +258,7 @@ const Upload = () => {
                 onChange={handleUrlChange}
                 placeholder="Enter a URL"
                 className={urlError ? 'border-destructive' : ''}
-                disabled={uploading}
+                disabled={uploading || !!file}
               />
               {urlError && (
                 <p className="text-xs text-destructive mt-1">{urlError}</p>
