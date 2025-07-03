@@ -3,14 +3,19 @@
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import Upload from '@/components/uploader'
+import ApiKeyConfig from '@/components/api-key-config'
 import Link from 'next/link'
+import ChatAvatar from '@/components/chat/chat-avatar'
 
 export default function Home() {
   return (
     <main className="container mx-auto py-20 text-left flex flex-col gap-6 items-start justify-start h-screen w-4xl">
       <div className="flex flex-col w-full">
         <div className="flex flex-row justify-between">
-          <h1 className="text-lg font-bold">Chunkr Chat</h1>
+          <h1 className="text-lg font-bold flex flex-row gap-2 items-center">
+            <ChatAvatar />
+            Chunkr Chat
+          </h1>
           <div className="flex flex-row gap-2">
             <Button variant="outline" size="icon" asChild>
               <Link href="https://github.com/lumina-ai-inc/chunkr-chat-app">
@@ -53,8 +58,10 @@ export default function Home() {
           </Link>
         </Button>
       </div>
-
-      <Upload />
+      <div className="space-y-4 w-full">
+        <ApiKeyConfig />
+        <Upload />
+      </div>
     </main>
   )
 }

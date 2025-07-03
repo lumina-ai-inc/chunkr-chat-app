@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Chunk, TaskResponse } from '@/client'
 import { Button } from '@/components/ui/button'
 import { FileText, X } from 'lucide-react'
+import { getApiHeaders, validateApiKeys } from '@/helpers/api-keys'
 
 const PDF = dynamic(() => import('@/components/chat/pdf-viewer'), {
   ssr: false,
@@ -26,10 +27,22 @@ export default function PDFPage() {
   useEffect(() => {
     const fetchPdfInfo = async () => {
       try {
+        const { isValid, missingKeys } = validateApiKeys()
+        if (!isValid) {
+          toast.error(
+            `Missing API keys: ${missingKeys.join(', ')}. Please configure them first.`
+          )
+          return
+        }
+
+        const apiHeaders = getApiHeaders()
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/task/${taskId}`,
           {
             method: 'GET',
+            headers: {
+              ...apiHeaders,
+            },
           }
         )
         const data = await res.json()

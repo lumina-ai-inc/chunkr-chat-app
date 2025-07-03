@@ -73,7 +73,7 @@ def get_chunkr_config() -> Configuration:
             Table=GenerationConfig(
                 crop_image=CroppingStrategy.ALL,
                 html=GenerationStrategy.LLM,
-                llm="Summarize the key trends in this table including any context from legends or surrounding text",
+                llm="Summarize the key information in this table including any context from legends or surrounding text",
                 markdown=GenerationStrategy.LLM,
                 embed_sources=["LLM", "Markdown"],
                 extended_context=True,

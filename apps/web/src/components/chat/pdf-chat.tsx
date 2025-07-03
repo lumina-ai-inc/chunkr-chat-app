@@ -13,6 +13,7 @@ import { useResponseStore } from '@/store/response-store'
 import { handleStreamingResponse } from '@/helpers/streaming-response-handler'
 import ModelSelect from '@/components/chat/model-select'
 import { BboxToggle } from '@/components/ui/bbox-toggle'
+import { getApiHeaders, validateApiKeys } from '@/helpers/api-keys'
 
 export default function PDFChat({ taskId }: { taskId: string }) {
   const [messages, setMessages] = useState<UIMessage[]>([])
@@ -30,6 +31,14 @@ export default function PDFChat({ taskId }: { taskId: string }) {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
+    const { isValid, missingKeys } = validateApiKeys()
+    if (!isValid) {
+      toast.error(
+        `Missing API keys: ${missingKeys.join(', ')}. Please configure them first.`
+      )
+      return
+    }
+
     const userMessage: UIMessage = {
       id: Date.now().toString(),
       content: inputMessage,
@@ -44,12 +53,14 @@ export default function PDFChat({ taskId }: { taskId: string }) {
       setStreamingText('')
       setStreamingToolCalls([])
       setMetadata({ citations: [], images: [] })
+      const apiHeaders = getApiHeaders()
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/generate`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...apiHeaders,
           },
           body: JSON.stringify({
             model: selectedModel,

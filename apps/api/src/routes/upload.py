@@ -1,5 +1,4 @@
 import base64
-import os
 import tiktoken
 from datetime import datetime
 from typing import Optional
@@ -9,13 +8,12 @@ from chunkr_ai import Chunkr
 from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 from chunkr_config import get_chunkr_config
-
+from api_keys import get_api_keys_from_headers
 from db import get_database_connection
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 TOKEN_LIMIT = 8191
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
 router = APIRouter()
 encoder = tiktoken.get_encoding("cl100k_base")
 
@@ -50,6 +48,9 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
         - Embeddings are generated in batch for efficiency
     """
     try:
+        # Get API keys from headers
+        api_keys = get_api_keys_from_headers(request)
+
         # Try to get URL from JSON body
         url = None
         try:
@@ -69,7 +70,7 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
         config = get_chunkr_config()
 
         # Initialize the Chunkr client with your API key
-        chunkr = Chunkr(api_key=os.getenv("CHUNKR_API_KEY"))
+        chunkr = Chunkr(api_key=api_keys["chunkr"])
 
         if url is not None:
             # Handle URL upload
@@ -126,7 +127,8 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
                 )
 
             try:
-                # Batch generate embeddings using OpenAI
+                # Set OpenAI API key and batch generate embeddings
+                openai.api_key = api_keys["openai"]
                 embedding_response = openai.embeddings.create(
                     model=EMBEDDING_MODEL, input=chunk_texts
                 )
@@ -202,7 +204,7 @@ async def upload(request: Request, file: Optional[UploadFile] = File(None)):
 
 
 @router.get("/task/{task_id}")
-async def get_task(task_id: str):
+async def get_task(task_id: str, request: Request):
     """
     Retrieve the status and details of a document processing task.
 
@@ -222,7 +224,10 @@ async def get_task(task_id: str):
             - 500: If error occurs while retrieving task from Chunkr service
     """
     try:
-        chunkr = Chunkr(api_key=os.getenv("CHUNKR_API_KEY"))
+        # Get API keys from headers
+        api_keys = get_api_keys_from_headers(request)
+
+        chunkr = Chunkr(api_key=api_keys["chunkr"])
 
         task = await chunkr.get_task(task_id, include_chunks=True)
 

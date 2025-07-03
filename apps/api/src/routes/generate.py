@@ -1,6 +1,5 @@
 import asyncio
 import json
-import os
 import uuid
 
 from fastapi import APIRouter, Request, HTTPException
@@ -8,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from openai import OpenAI
 
 from tools import tools, TOOL_MAPPING
+from api_keys import get_api_keys_from_headers
 
 router = APIRouter()
 
@@ -87,13 +87,14 @@ def ensure_valid_message_id(message):
     return msg_copy
 
 
-async def execute_tool_call(messages: list, tool_call: dict):
+async def execute_tool_call(messages: list, tool_call: dict, api_keys: dict):
     """
     Execute a tool call and return both the tool info and result.
 
     Args:
         messages (list): List of chat messages to append the tool call and result to
         tool_call (dict): The tool call object containing function name and arguments
+        api_keys (dict): Dictionary containing API keys from headers
 
     Returns:
         dict: Tool information containing type, tool_name, and arguments
@@ -129,9 +130,9 @@ async def execute_tool_call(messages: list, tool_call: dict):
     tool_info = {"type": "tool_call", "tool_name": name, "arguments": args}
 
     if asyncio.iscoroutinefunction(tool_func):
-        tool_result = await tool_func(**args)
+        tool_result = await tool_func(**args, api_keys=api_keys)
     else:
-        tool_result = tool_func(**args)
+        tool_result = tool_func(**args, api_keys=api_keys)
 
     if (
         name in ("query_embeddings")
@@ -197,9 +198,12 @@ async def chat_route(request: Request):
         Yields:
             str: JSON-formatted chunks containing tool calls or response content
         """
+        # Get API keys from headers
+        api_keys = get_api_keys_from_headers(request)
+
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
+            api_key=api_keys["openrouter"],
         )
         system_message = build_system_message(task_id)
 
@@ -224,7 +228,7 @@ async def chat_route(request: Request):
             if message.tool_calls:
                 # Stream tool call information
                 tool_info = await execute_tool_call(
-                    chat_messages, message.tool_calls[0]
+                    chat_messages, message.tool_calls[0], api_keys
                 )
                 yield json.dumps(tool_info) + "\n"
                 continue

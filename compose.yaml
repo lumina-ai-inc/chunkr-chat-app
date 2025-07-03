@@ -3,19 +3,36 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    pull_policy: build
     ports:
       - 8000:8000
     depends_on:
       - postgres-db
-    env_file:
-      - ./apps/api/.env
+    environment:
+      - HOST=postgres-db
+      - PORT=5432
+      - DBNAME=postgres
+      - USER=postgres
+      - PASSWORD=postgres
     networks:
       - app-network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./apps/api
+          ignore:
+            - __pycache__/
+            - "*.pyc"
+            - "*.pyo"
+            - ".pytest_cache/"
+            - ".coverage"
+            - ".env"
 
   web:
     build:
       context: .
       dockerfile: ./apps/web/Dockerfile
+    pull_policy: build
     ports:
       - 3000:3000
     depends_on:
@@ -24,39 +41,32 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     networks:
       - app-network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./apps/web
+          ignore:
+            - node_modules/
+            - .next/
+            - "*.log"
+            - ".env*"
 
   postgres-db:
-    image: supabase/postgres:15.6.1.118
+    image: pgvector/pgvector:pg17
     ports:
-      - 54321:5432 # Map local 54321 to container's PostgreSQL port 5432
-      - 54322:6543 # Map local 54322 to container's pooler port 6543
+      - 54321:5432
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    command:
-      - "postgres"
-      - "-c"
-      - "listen_addresses=*"
-      - "-c"
-      - "wal_level=logical"
-      - "-c"
-      - "log_statement=none"
-      - "-c"
-      - "log_min_messages=error"
-      - "-c"
-      - "log_destination=stderr"
-      - "-c"
-      - "logging_collector=off"
-      - "-c"
-      - "shared_preload_libraries=vector"
     networks:
       - app-network
 
 volumes:
   postgres_data:
+
 
 networks:
   app-network:
