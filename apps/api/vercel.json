@@ -13,6 +13,7 @@
     }
   ],
   "env": {
-    "APP_MODULE": "src.main:app"
+    "APP_MODULE": "src.main:app",
+    "PYTHONPATH": "src/"
   }
 }
