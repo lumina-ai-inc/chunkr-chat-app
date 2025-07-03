@@ -3,6 +3,7 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    pull_policy: build
     ports:
       - 8000:8000
     depends_on:
@@ -31,6 +32,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/web/Dockerfile
+    pull_policy: build
     ports:
       - 3000:3000
     depends_on:
