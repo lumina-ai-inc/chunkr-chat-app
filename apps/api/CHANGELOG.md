@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/lumina-ai-inc/chunkr-chat-app/compare/chunkr-chat-app-api-v0.2.1...chunkr-chat-app-api-v0.3.0) (2025-07-03)
+
+
+### Features
+
+* add api config, fix postgres ([#10](https://github.com/lumina-ai-inc/chunkr-chat-app/issues/10)) ([767a9bf](https://github.com/lumina-ai-inc/chunkr-chat-app/commit/767a9bf8f5a4475ee35b4ef29a15a4dafc6e9b57))
+
 ## [0.2.1](https://github.com/lumina-ai-inc/chunkr-chat-app/compare/chunkr-chat-app-api-v0.2.0...chunkr-chat-app-api-v0.2.1) (2025-06-25)
 
 
