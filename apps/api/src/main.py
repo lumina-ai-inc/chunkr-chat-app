@@ -33,6 +33,7 @@ app.include_router(generate_router, prefix="/api")
 
 
 @app.get("/health")
+@app.get("/")
 async def health_check():
     """
     Check the health of the database.
