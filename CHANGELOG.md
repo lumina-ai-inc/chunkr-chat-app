@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/lumina-ai-inc/chunkr-chat-app/compare/chunkr-chat-app-v0.3.0...chunkr-chat-app-v0.3.1) (2025-07-03)
+
+
+### Bug Fixes
+
+* added PYTHONPATH to vercel.json ([33fe1ac](https://github.com/lumina-ai-inc/chunkr-chat-app/commit/33fe1aca251bf11989e2ea5748e9a11f9aa62e51))
+* requirements.txt and python version changed to be vercel compatible ([e47c468](https://github.com/lumina-ai-inc/chunkr-chat-app/commit/e47c468b2c29c5368a5837c0053af0d1b16fcfbf))
+
 ## [0.3.0](https://github.com/lumina-ai-inc/chunkr-chat-app/compare/chunkr-chat-app-v0.2.1...chunkr-chat-app-v0.3.0) (2025-07-03)
 
 
